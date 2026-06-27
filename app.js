@@ -22,11 +22,10 @@ function validate(data) {
   data.faecher.forEach((f, i) => {
     if (!f.name) throw new Error(`Fach #${i + 1}: Name fehlt.`);
     if (!Array.isArray(f.kompetenzen)) throw new Error(`Fach "${f.name}": Kompetenzen fehlen.`);
-    // Wenn irgendeine Fähigkeit "*" hat, ist ein Fachkommentar Pflicht.
     const hasStar = f.kompetenzen.some((k) =>
       (k.subkompetenzen || []).some((s) => s.bewertung === "*"));
     if (hasStar && !(f.kommentar && String(f.kommentar).trim())) {
-      throw new Error(`Fach "${f.name}": Es wurde "*" vergeben – dann muss die Spalte „Fachkommentar" ausgefüllt sein.`);
+      throw new Error(`Fach "${f.name}": Es wurde "*" vergeben – dann muss die Zeile „Kommentar" ausgefüllt sein.`);
     }
   });
 }
@@ -88,9 +87,9 @@ function rowsToData(rows) {
     if (!curFach) continue;
 
     // Fachkommentar-Zeile: Marker "Kommentar" in der Kompetenz-Spalte,
-    // der Text steht in Spalte C (Fähigkeit).
+    // der Text steht in einer der Spalten danach
     if (kompName.toLowerCase() === "kommentar") {
-      curFach.kommentar = String(r[2] || "").trim();
+      curFach.kommentar = String(r[2] || "").trim() + String(r[3] || "").trim();
       continue;
     }
 
@@ -205,15 +204,53 @@ function pdfRating(doc, value, cx, cy) {
   pdfDrawPie(doc, cx, cy, 2.7, frac);
 }
 
-/* gedrehte Kompetenz-Beschriftung (bricht in mehrere Zeilen UM statt zu schrumpfen) */
+const LABEL_FS = 8;        // Schriftgröße der gedrehten Beschriftung
+const LABEL_GAP = 2.9;     // Abstand der gestapelten Zeilen (über die Spaltenbreite)
+const LABEL_MAXLINES = 3;  // passt in ~10mm Spaltenbreite
+
+/* Wort-Umbruch, der NIE ein Wort trennt (umbricht nur an Leerzeichen). */
+function wrapWords(doc, text, maxLen) {
+  const words = String(text).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let cur = "";
+  for (const w of words) {
+    const trial = cur ? cur + " " + w : w;
+    if (!cur || doc.getTextWidth(trial) <= maxLen) cur = trial;
+    else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  return lines.length ? lines : [""];
+}
+
+/* Mindest-Zeilenlänge (= benötigte Zellenhöhe ohne Padding), damit der Text in
+   ≤ maxLines Zeilen passt – ohne ein Wort zu trennen. Ein sehr langes Einzelwort
+   bestimmt dann die Mindesthöhe (-> Zeilen wachsen alle gleich). */
+function labelRequiredLen(doc, text, maxLines) {
+  doc.setFont("helvetica", "bold"); doc.setFontSize(LABEL_FS);
+  const words = String(text).split(/\s+/).filter(Boolean);
+  if (!words.length) return 0;
+  const count = (L) => wrapWords(doc, text, L).length;
+  let lo = Math.max.apply(null, words.map((w) => doc.getTextWidth(w)));
+  let hi = doc.getTextWidth(String(text));
+  if (count(lo) <= maxLines) return lo;
+  for (let it = 0; it < 22; it++) { const mid = (lo + hi) / 2; if (count(mid) <= maxLines) hi = mid; else lo = mid; }
+  return hi;
+}
+
+/* gedrehte Kompetenz-Beschriftung: wortweiser Umbruch passend zur (ggf.
+   gewachsenen) Zellenhöhe, vertikal zentriert. Kein jsPDF-"align" mit Winkel –
+   Anker y = Mitte + halbe Textbreite positioniert jede Zeile zuverlässig mittig. */
 function pdfRotatedLabel(doc, text, cell) {
-  doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(0, 0, 0);
-  const lines = doc.splitTextToSize(String(text), cell.height - 3);
-  const lh = 2.9;
-  const totalW = lines.length * lh;
-  const startX = cell.x + (cell.width - totalW) / 2 + lh * 0.72;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(LABEL_FS); doc.setTextColor(0, 0, 0);
+  const lines = wrapWords(doc, String(text), cell.height - 4);
+  const blockW = lines.length * LABEL_GAP;
+  let x = cell.x + cell.width / 2 - blockW / 2 + LABEL_GAP * 0.78;
   const cy = cell.y + cell.height / 2;
-  lines.forEach((ln, i) => doc.text(ln, startX + i * lh, cy, { angle: 90, align: "center" }));
+  lines.forEach((ln) => {
+    const tw = doc.getTextWidth(ln);
+    doc.text(ln, x, cy + tw / 2, { angle: 90 });
+    x += LABEL_GAP;
+  });
 }
 
 function generatePDF() {
@@ -260,7 +297,7 @@ function generatePDF() {
     (data.faecher || []).forEach((fach) => {
       const hasKomp = (fach.kompetenzen || []).some((k) => k.name && String(k.name).trim());
       const cols = hasKomp ? 3 : 2;
-      const LBL = 9, RAT = 16;
+      const LBL = 10, RAT = 16;
 
       // Überschrift nie allein am Seitenende: Platz für Titel + 1 Zeile sichern
       if (y + 8 + 14 > PH - BOT) { doc.addPage(); y = TOP; }
@@ -270,10 +307,17 @@ function generatePDF() {
       const bodyRows = [];
       (fach.kompetenzen || []).forEach((komp) => {
         const subs = komp.subkompetenzen || [];
+        // Mindesthöhe für die gedrehte Beschriftung (ohne Wort zu trennen),
+        // gleichmäßig auf die Zeilen der Kompetenz verteilt. Nur ein Untergrenze:
+        // brauchen die Texte natürlich mehr Höhe, bleibt es dabei.
+        let perRowMin = 0;
+        if (hasKomp && komp.name && subs.length) {
+          perRowMin = (labelRequiredLen(doc, komp.name, LABEL_MAXLINES) + 5) / subs.length;
+        }
         subs.forEach((sub, i) => {
           const row = [];
           if (hasKomp && i === 0) row.push({ content: "", rowSpan: subs.length, _komp: komp.name });
-          row.push(sub.text);
+          row.push(perRowMin ? { content: sub.text, styles: { minCellHeight: perRowMin } } : sub.text);
           row.push({ content: "", _rating: sub.bewertung });
           bodyRows.push(row);
         });
@@ -338,7 +382,7 @@ function generatePDF() {
       doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120, 120, 120);
       doc.text(`Seite ${i}`, SIDE, 12);
       if (name) doc.text(`des Zeugnisses von ${name}`, SIDE + 20, 12);
-      if (schuljahr) { const jahr = `Schuljahr ${schuljahr}`; doc.text(jahr, PW - SIDE - 32 - doc.getTextWidth(jahr), 12); }
+      if (schuljahr) { const jahr = `Schuljahr ${schuljahr}`; doc.text(jahr, SIDE + doc.getTextWidth(`des Zeugnisses von ${name}` + 4), 12); }
       if (logoDataUrl) { const lw = 28, lh = lw * logoRatio; doc.addImage(logoDataUrl, "PNG", PW - SIDE - lw, 5, lw, lh); }
     }
 
