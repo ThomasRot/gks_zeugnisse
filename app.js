@@ -261,7 +261,7 @@ function generatePDF() {
     const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
     const PW = doc.internal.pageSize.getWidth();
     const PH = doc.internal.pageSize.getHeight();
-    const SIDE = 18, TOP = 20, BOT = 18;
+    const SIDE = 18, TOP = 18, BOT = 18;
     const CW = PW - 2 * SIDE;
     const name = String(data.name || "");
     const schuljahr = String(data.schuljahr || "");
@@ -323,7 +323,13 @@ function generatePDF() {
         });
       });
       if (fach.kommentar && String(fach.kommentar).trim()) {
-        bodyRows.push([{ content: String(fach.kommentar), colSpan: cols, styles: { fontStyle: "italic", fillColor: [250, 250, 250], textColor: [60, 60, 60], fontSize: 9.5 } }]);
+        // Kommentarkasten: immer mind. ~4 Zeilen hoch, dezent hinterlegt, Text
+        // oben – hebt sich auch bei wenig Inhalt sichtbar ab.
+        bodyRows.push([{
+          content: String(fach.kommentar),
+          colSpan: cols,
+          styles: { minCellHeight: 20, valign: "top", fillColor: [245, 245, 245], textColor: [60, 60, 60], fontStyle: "italic", fontSize: 9.5 }
+        }]);
       }
 
       const columnStyles = hasKomp
@@ -380,9 +386,9 @@ function generatePDF() {
     for (let i = 1; i <= total; i++) {
       doc.setPage(i);
       doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120, 120, 120);
-      doc.text(`Seite ${i}`, SIDE, 16);
-      if (name) doc.text(`des Zeugnisses von ${name}`, SIDE + 14, 16);
-      if (schuljahr) { const jahr = `Schuljahr ${schuljahr}`; doc.text(jahr, SIDE + doc.getTextWidth(`des Zeugnisses von ${name}`) + 18, 16); }
+      doc.text(`Seite ${i}`, SIDE, 14);
+      if (name) doc.text(`des Zeugnisses von ${name}`, SIDE + 14, 14);
+      if (schuljahr) { const jahr = `Schuljahr ${schuljahr}`; doc.text(jahr, SIDE + doc.getTextWidth(`des Zeugnisses von ${name}`) + 18, 14 ); }
       if (logoDataUrl) { const lw = 42, lh = lw * logoRatio; doc.addImage(logoDataUrl, "PNG", PW - SIDE - lw, 4, lw, lh); }
     }
 
