@@ -136,7 +136,6 @@ function renderReport(data) {
     </div>`;
 
   report.innerHTML = head + legend + faecher + gesamt + kenntnis;
-  renderRotatedLabels();
   showPreview(true);
 }
 
@@ -146,33 +145,6 @@ function showPreview(on) {
   const report = document.getElementById("report");
   if (title) title.style.display = on ? "" : "none";
   if (report) report.style.display = on ? "" : "none";
-}
-
-/* Rendert die gedrehten Kompetenz-Beschriftungen als SVG.
-   Vorteil: html2canvas (PDF) stellt SVG korrekt dar (kein "writing-mode"-
-   Problem / kein Kopfüber-Effekt), und das SVG wird exakt auf die gemessene
-   Zellenhöhe skaliert – so überlappen lange Namen nichts. */
-function renderRotatedLabels(root) {
-  (root || document).querySelectorAll(".komp-label").forEach((td) => {
-    const text = td.getAttribute("data-label") || "";
-    const w = td.clientWidth;
-    const h = td.clientHeight;
-    if (!w || !h) return;
-    const avail = h - 8;                 // nutzbare Länge (= Zellenhöhe)
-    const baseFs = 11.3;                 // ~8.5pt
-    const charW = 0.55;                  // grobe mittlere Zeichenbreite (Arial)
-    let fs = baseFs;
-    const needed = text.length * baseFs * charW;
-    if (needed > avail) fs = Math.max(6.5, avail / (text.length * charW));
-    const cx = (w / 2).toFixed(1);
-    const cy = (h / 2).toFixed(1);
-    td.innerHTML =
-      `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">` +
-      `<text x="${cx}" y="${cy}" transform="rotate(-90 ${cx} ${cy})" ` +
-      `text-anchor="middle" dominant-baseline="central" ` +
-      `font-family="Arial, Helvetica, sans-serif" font-size="${fs.toFixed(1)}" font-weight="600">` +
-      `${esc(text)}</text></svg>`;
-  });
 }
 
 function renderFach(fach) {
@@ -189,7 +161,7 @@ function renderFach(fach) {
       const labelCell = !hasKompNames
         ? ""
         : i === 0
-          ? `<td class="komp-label" rowspan="${subs.length}" data-label="${esc(komp.name)}"></td>`
+          ? `<td class="komp-label" rowspan="${subs.length}"><span>${esc(komp.name)}</span></td>`
           : "";
       return `
         <tr>
@@ -362,68 +334,196 @@ function pickZeugnisRows(wb) {
   return read(fallback);
 }
 
+/* ============================================================
+   PDF-Erzeugung – VEKTOR (jsPDF + AutoTable), echter markierbarer Text
+   ============================================================ */
+
+/* gefülltes Polygon aus absoluten Punkten */
+function pdfFillPolygon(doc, pts, rgb) {
+  doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+  const rel = [];
+  for (let i = 1; i < pts.length; i++) rel.push([pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]]);
+  doc.lines(rel, pts[0][0], pts[0][1], [1, 1], "F", true);
+}
+
+/* Tortenkreis: f = 1 voll, 0.75, 0.5, 0.25 */
+function pdfDrawPie(doc, cx, cy, r, f) {
+  doc.setLineWidth(0.25); doc.setDrawColor(0, 0, 0);
+  doc.setFillColor(255, 255, 255);
+  doc.circle(cx, cy, r, "FD");
+  if (f >= 1) { doc.setFillColor(0, 0, 0); doc.circle(cx, cy, r, "F"); doc.circle(cx, cy, r, "S"); return; }
+  if (f > 0) {
+    const pts = [[cx, cy], [cx, cy - r]];
+    const steps = Math.max(2, Math.round(f * 36));
+    for (let i = 1; i <= steps; i++) { const t = f * 2 * Math.PI * (i / steps); pts.push([cx + r * Math.sin(t), cy - r * Math.cos(t)]); }
+    pdfFillPolygon(doc, pts, [0, 0, 0]);
+    doc.circle(cx, cy, r, "S");
+  }
+}
+
+/* dicker Block-Pfeil, zentriert auf (cx,cy), Gesamtbreite w */
+function pdfDrawArrow(doc, cx, cy, w) {
+  const h = w * 0.62, x = cx - w / 2, sh = h * 0.22, head = w * 0.5;
+  pdfFillPolygon(doc, [
+    [x, cy - sh], [x + head, cy - sh], [x + head, cy - h / 2],
+    [x + w, cy], [x + head, cy + h / 2], [x + head, cy + sh], [x, cy + sh]
+  ], [0, 0, 0]);
+}
+
+/* Bewertungssymbol in eine Zelle zeichnen */
+function pdfRating(doc, value, cx, cy) {
+  if (value === "" || value === null || value === undefined) return;
+  if (value === "*") { doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(0, 0, 0); doc.text("*", cx, cy + 2.2, { align: "center" }); return; }
+  const num = typeof value === "string" ? value.trim() : value;
+  if (num === 5 || num === "5" || num === "→" || num === "->") { pdfDrawArrow(doc, cx, cy, 7); return; }
+  const frac = { 1: 1, 2: 0.75, 3: 0.5, 4: 0.25 }[num];
+  if (frac === undefined) { doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(0, 0, 0); doc.text("?", cx, cy + 1.5, { align: "center" }); return; }
+  pdfDrawPie(doc, cx, cy, 2.7, frac);
+}
+
+/* gedrehte Kompetenz-Beschriftung (bricht in mehrere Zeilen UM statt zu schrumpfen) */
+function pdfRotatedLabel(doc, text, cell) {
+  doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(0, 0, 0);
+  const lines = doc.splitTextToSize(String(text), cell.height - 3);
+  const lh = 2.9;
+  const totalW = lines.length * lh;
+  const startX = cell.x + (cell.width - totalW) / 2 + lh * 0.72;
+  const cy = cell.y + cell.height / 2;
+  lines.forEach((ln, i) => doc.text(ln, startX + i * lh, cy, { angle: 90, align: "center" }));
+}
+
 function generatePDF() {
   if (!currentData) return;
-  const element = document.getElementById("report");
-  const safeName = String(currentData.name || "Zeugnis").replace(/[^\wäöüÄÖÜß-]+/g, "_");
-  const name = String(currentData.name || "");
-  const schuljahr = String(currentData.schuljahr || "");
-  // Seitliche Ränder (SIDE) stecken im Element-Padding und werden 1:1
-  // mitgerendert -> KEINE horizontale Skalierung (gleiche Schrift wie Vorschau).
-  // html2pdf-Rand daher links/rechts 0, nur oben (für Kopfzeile) und unten.
-  const SIDE = 18, MT = 18, MB = 18;
-  const opt = {
-    // [oben, links, unten, rechts] in mm
-    margin: [MT, 0, MB, 0],
-    filename: `Zeugnis_${safeName}.pdf`,
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-    pagebreak: { mode: ["css", "legacy"], avoid: [".komp-group", "tr", ".kenntnis", ".fach-title"] }
-  };
-  setMessage("PDF wird erstellt …", "ok");
+  try {
+    const { jsPDF } = window.jspdf;
+    const data = currentData;
+    const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    const PW = doc.internal.pageSize.getWidth();
+    const PH = doc.internal.pageSize.getHeight();
+    const SIDE = 18, TOP = 20, BOT = 18;
+    const CW = PW - 2 * SIDE;
+    const name = String(data.name || "");
+    const schuljahr = String(data.schuljahr || "");
+    const gridStyle = { lineColor: [0, 0, 0], lineWidth: 0.2, textColor: [0, 0, 0], font: "helvetica" };
 
-  // Für den Export: Vorschau-Kopfzeile ausblenden (Kopfzeile zeichnet jsPDF pro
-  // Seite) und oben/unten-Padding entfernen (kommt aus opt.margin). Seitliches
-  // Padding (18mm) bleibt = die linken/rechten Seitenränder.
-  const hidden = element.querySelectorAll(".no-pdf");
-  const restore = () => {
-    hidden.forEach((e) => (e.style.display = ""));
-    element.classList.remove("pdf-mode");
-    renderRotatedLabels();
-  };
-  hidden.forEach((e) => (e.style.display = "none"));
-  element.classList.add("pdf-mode");
-  renderRotatedLabels();
+    // ---------- Legende ----------
+    doc.autoTable({
+      startY: TOP,
+      margin: { left: SIDE, right: SIDE, top: TOP, bottom: BOT },
+      theme: "grid",
+      styles: Object.assign({}, gridStyle, { halign: "center", valign: "middle", fontSize: 9, fontStyle: "bold", minCellHeight: 8 }),
+      body: [["", "", "", ""], ["mit Unterstützung", "teilweise", "überwiegend", "sicher"]],
+      columnStyles: { 0: { cellWidth: CW / 4 }, 1: { cellWidth: CW / 4 }, 2: { cellWidth: CW / 4 }, 3: { cellWidth: CW / 4 } },
+      didParseCell: (d) => { if (d.row.index === 0) d.cell.styles.minCellHeight = 9; },
+      didDrawCell: (d) => {
+        if (d.section === "body" && d.row.index === 0) {
+          pdfDrawPie(doc, d.cell.x + d.cell.width / 2, d.cell.y + d.cell.height / 2, 2.7, [0.25, 0.5, 0.75, 1][d.column.index]);
+        }
+      }
+    });
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY,
+      margin: { left: SIDE, right: SIDE, top: TOP, bottom: BOT },
+      theme: "grid",
+      styles: Object.assign({}, gridStyle, { fontSize: 9, fontStyle: "bold", valign: "middle", cellPadding: { top: 2, bottom: 2, left: 4, right: 4 } }),
+      body: [["*    siehe Kommentar", "        Kompetenz wird noch erworben"]],
+      columnStyles: { 0: { cellWidth: CW / 2 }, 1: { cellWidth: CW / 2 } },
+      didDrawCell: (d) => { if (d.section === "body" && d.column.index === 1) pdfDrawArrow(doc, d.cell.x + 6, d.cell.y + d.cell.height / 2, 6); }
+    });
+    let y = doc.lastAutoTable.finalY + 7;
 
-  html2pdf().set(opt).from(element).toPdf().get("pdf").then((pdf) => {
-    // Laufende Kopfzeile mit echter Seitenzahl auf jeder Seite
-    const total = pdf.internal.getNumberOfPages();
-    const pw = pdf.internal.pageSize.getWidth();
-    for (let i = 1; i <= total; i++) {
-      pdf.setPage(i);
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(9);
-      pdf.setTextColor(120);
-      const y = 12;
-      pdf.text(`Seite ${i}`, SIDE, y);
-      if (name) pdf.text(`des Zeugnisses von ${name}`, SIDE + 20, y);
-      if (schuljahr) {
-        const jahr = `Schuljahr ${schuljahr}`;
-        pdf.text(jahr, pw - SIDE - 34 - pdf.getTextWidth(jahr), y);
+    // ---------- Fächer ----------
+    (data.faecher || []).forEach((fach) => {
+      const hasKomp = (fach.kompetenzen || []).some((k) => k.name && String(k.name).trim());
+      const cols = hasKomp ? 3 : 2;
+      const LBL = 9, RAT = 16;
+
+      // Überschrift nie allein am Seitenende: Platz für Titel + 1 Zeile sichern
+      if (y + 8 + 14 > PH - BOT) { doc.addPage(); y = TOP; }
+      doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(0, 0, 0);
+      doc.text(String(fach.name), SIDE, y + 5);
+
+      const bodyRows = [];
+      (fach.kompetenzen || []).forEach((komp) => {
+        const subs = komp.subkompetenzen || [];
+        subs.forEach((sub, i) => {
+          const row = [];
+          if (hasKomp && i === 0) row.push({ content: "", rowSpan: subs.length, _komp: komp.name });
+          row.push(sub.text);
+          row.push({ content: "", _rating: sub.bewertung });
+          bodyRows.push(row);
+        });
+      });
+      if (fach.kommentar && String(fach.kommentar).trim()) {
+        bodyRows.push([{ content: String(fach.kommentar), colSpan: cols, styles: { fontStyle: "italic", fillColor: [250, 250, 250], textColor: [60, 60, 60], fontSize: 9.5 } }]);
       }
-      if (logoDataUrl) {
-        const lw = 30, lh = lw * logoRatio;
-        pdf.addImage(logoDataUrl, "PNG", pw - SIDE - lw, 6, lw, lh);
-      }
+
+      const columnStyles = hasKomp
+        ? { 0: { cellWidth: LBL, fillColor: [247, 247, 247] }, 1: { cellWidth: CW - LBL - RAT }, 2: { cellWidth: RAT, halign: "center" } }
+        : { 0: { cellWidth: CW - RAT }, 1: { cellWidth: RAT, halign: "center" } };
+
+      doc.autoTable({
+        startY: y + 8,
+        margin: { left: SIDE, right: SIDE, top: TOP, bottom: BOT },
+        theme: "grid",
+        styles: Object.assign({}, gridStyle, { fontSize: 10, valign: "middle", overflow: "linebreak", cellPadding: { top: 1.8, bottom: 1.8, left: 2.5, right: 2.5 } }),
+        rowPageBreak: "avoid",
+        columnStyles,
+        body: bodyRows,
+        didDrawCell: (d) => {
+          if (d.section !== "body") return;
+          const raw = d.cell.raw;
+          if (raw && raw._komp !== undefined) pdfRotatedLabel(doc, raw._komp, d.cell);
+          if (raw && raw._rating !== undefined) pdfRating(doc, raw._rating, d.cell.x + d.cell.width / 2, d.cell.y + d.cell.height / 2);
+        }
+      });
+      y = doc.lastAutoTable.finalY + 7;
+    });
+
+    // ---------- Gesamtkommentar ----------
+    if (data.kommentar && String(data.kommentar).trim()) {
+      if (y > PH - BOT - 10) { doc.addPage(); y = TOP; } else { y += 2; }
+      doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(0, 0, 0);
+      String(data.kommentar).split(/\r?\n/).forEach((para) => {
+        const lines = para === "" ? [""] : doc.splitTextToSize(para, CW);
+        lines.forEach((ln) => {
+          if (y > PH - BOT) { doc.addPage(); y = TOP; }
+          doc.text(ln, SIDE, y); y += 5;
+        });
+      });
     }
-  }).save().then(() => {
-    restore();
+
+    // ---------- Kenntnis genommen ----------
+    if (y + 30 > PH - BOT) { doc.addPage(); y = TOP; }
+    y += 14;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(0, 0, 0);
+    doc.text("Kenntnis genommen:", SIDE, y);
+    const labelW = 42, gap = 10, fieldW = (CW - labelW - gap) / 2;
+    const x1 = SIDE + labelW, x2 = x1 + fieldW + gap;
+    doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.2);
+    doc.line(x1, y, x1 + fieldW, y);
+    doc.line(x2, y, x2 + fieldW, y);
+    doc.setFontSize(8); doc.setTextColor(60, 60, 60);
+    doc.text("Ort und Datum", x1 + fieldW / 2, y + 4, { align: "center" });
+    doc.text("Unterschrift eines Erziehungsberechtigten", x2 + fieldW / 2, y + 4, { align: "center" });
+
+    // ---------- laufende Kopfzeile auf jeder Seite ----------
+    const total = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= total; i++) {
+      doc.setPage(i);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120, 120, 120);
+      doc.text(`Seite ${i}`, SIDE, 12);
+      if (name) doc.text(`des Zeugnisses von ${name}`, SIDE + 20, 12);
+      if (schuljahr) { const jahr = `Schuljahr ${schuljahr}`; doc.text(jahr, PW - SIDE - 32 - doc.getTextWidth(jahr), 12); }
+      if (logoDataUrl) { const lw = 28, lh = lw * logoRatio; doc.addImage(logoDataUrl, "PNG", PW - SIDE - lw, 5, lw, lh); }
+    }
+
+    const safeName = name.replace(/[^\wäöüÄÖÜß-]+/g, "_") || "Zeugnis";
+    doc.save(`Zeugnis_${safeName}.pdf`);
     setMessage("✓ PDF wurde heruntergeladen.", "ok");
-  }).catch((e) => {
-    restore();
+  } catch (e) {
     setMessage("PDF-Erstellung fehlgeschlagen: " + e.message, "error");
-  });
+  }
 }
 
 /* Logo einmalig als dataURL laden (für die jsPDF-Kopfzeile) */

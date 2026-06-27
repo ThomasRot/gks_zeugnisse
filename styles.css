@@ -161,16 +161,6 @@ body {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.14);  /* Seitenoptik ohne harten Rahmen */
 }
 
-/* Während der PDF-Erzeugung: seitliche Ränder (18mm Padding) bleiben Teil des
-   Elements und werden von html2pdf 1:1 mitgerendert (volle Seitenbreite, keine
-   horizontale Skalierung → gleiche Schrift/Umbrüche wie die Vorschau). Oben/unten
-   übernimmt html2pdf (margin), daher hier 0. Kein Schatten im PDF. */
-.report.pdf-mode {
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  box-shadow: none !important;
-}
-
 .placeholder { color: var(--muted); text-align: center; padding: 40px 0; }
 
 /* Kopfzeile + Logo (Vorschau): Text links, Logo rechts, unten bündig */
@@ -264,14 +254,23 @@ body {
    renderRotatedLabels). SVG wird von html2canvas korrekt dargestellt und exakt
    auf die Zellenhöhe skaliert, daher keine Überlappungen und kein Kopfüber-Bug. */
 .komp-label {
-  width: 30px;
-  min-width: 30px;
-  padding: 0 !important;
+  width: 34px;
+  min-width: 34px;
+  max-width: 48px;
+  padding: 3px 1px !important;
   text-align: center;
+  vertical-align: middle;
   background: #f7f7f7;
 }
-.komp-label svg {
-  display: block;
+/* Beschriftung bricht bei Bedarf in mehrere vertikale Zeilen UM (schrumpft nicht) */
+.komp-label span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  display: inline-block;
+  font-size: 8.5pt;
+  font-weight: 600;
+  line-height: 1.15;
+  white-space: normal;
 }
 
 .sub-text {

@@ -112,7 +112,10 @@ Regeln:
 > Das Logo wird über `GKS-Logo.png` eingebunden. Zum Austauschen einfach die
 > Datei gleichen Namens ersetzen (oder den Dateinamen in `app.js` anpassen).
 
-Die PDF-Erzeugung nutzt [html2pdf.js](https://github.com/eKoopmans/html2pdf.js),
-das Lesen der Excel-Dateien [SheetJS](https://sheetjs.com/) – beide via CDN. Das
-PDF enthält auf jeder Seite eine laufende Kopfzeile mit Seitenzahl, Name,
-Schuljahr und Logo.
+Die PDF-Erzeugung nutzt [jsPDF](https://github.com/parallax/jsPDF) +
+[jsPDF-AutoTable](https://github.com/simonbengtsson/jsPDF-AutoTable), das Lesen
+der Excel-Dateien [SheetJS](https://sheetjs.com/) – alle via CDN. Das PDF ist
+**vektorbasiert mit markierbarem Text** (kein Bild): Tabellen brechen sauber um,
+lange Kompetenz-Beschriftungen werden mehrzeilig statt kleiner, Überschriften
+bleiben bei ihrer Tabelle, und jede Seite hat eine laufende Kopfzeile mit
+Seitenzahl, Name, Schuljahr und Logo.
