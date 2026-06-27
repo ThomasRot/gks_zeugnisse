@@ -380,10 +380,10 @@ function generatePDF() {
     for (let i = 1; i <= total; i++) {
       doc.setPage(i);
       doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120, 120, 120);
-      doc.text(`Seite ${i}`, SIDE, 12);
-      if (name) doc.text(`des Zeugnisses von ${name}`, SIDE + 20, 12);
-      if (schuljahr) { const jahr = `Schuljahr ${schuljahr}`; doc.text(jahr, SIDE + doc.getTextWidth(`des Zeugnisses von ${name}` + 4), 12); }
-      if (logoDataUrl) { const lw = 28, lh = lw * logoRatio; doc.addImage(logoDataUrl, "PNG", PW - SIDE - lw, 5, lw, lh); }
+      doc.text(`Seite ${i}`, SIDE, 16);
+      if (name) doc.text(`des Zeugnisses von ${name}`, SIDE + 14, 16);
+      if (schuljahr) { const jahr = `Schuljahr ${schuljahr}`; doc.text(jahr, SIDE + doc.getTextWidth(`des Zeugnisses von ${name}`) + 18, 16); }
+      if (logoDataUrl) { const lw = 42, lh = lw * logoRatio; doc.addImage(logoDataUrl, "PNG", PW - SIDE - lw, 4, lw, lh); }
     }
 
     const safeName = name.replace(/[^\wäöüÄÖÜß-]+/g, "_") || "Zeugnis";
@@ -396,7 +396,7 @@ function generatePDF() {
 
 /* Logo einmalig als dataURL laden (für die jsPDF-Kopfzeile) */
 let logoDataUrl = null;
-let logoRatio = 0.25;
+let logoRatio = 0.8;
 function loadLogo() {
   const img = new Image();
   img.onload = () => {
