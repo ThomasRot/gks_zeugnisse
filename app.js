@@ -172,14 +172,23 @@ function renderReport(data) {
 
   report.innerHTML = head + legend + faecher + gesamt + kenntnis;
   renderRotatedLabels();
+  showPreview(true);
+}
+
+/* Vorschau (Überschrift + Dokument) nur anzeigen, wenn Daten geladen sind */
+function showPreview(on) {
+  const title = document.getElementById("preview-title");
+  const report = document.getElementById("report");
+  if (title) title.style.display = on ? "" : "none";
+  if (report) report.style.display = on ? "" : "none";
 }
 
 /* Rendert die gedrehten Kompetenz-Beschriftungen als SVG.
    Vorteil: html2canvas (PDF) stellt SVG korrekt dar (kein "writing-mode"-
    Problem / kein Kopfüber-Effekt), und das SVG wird exakt auf die gemessene
    Zellenhöhe skaliert – so überlappen lange Namen nichts. */
-function renderRotatedLabels() {
-  document.querySelectorAll(".komp-label").forEach((td) => {
+function renderRotatedLabels(root) {
+  (root || document).querySelectorAll(".komp-label").forEach((td) => {
     const text = td.getAttribute("data-label") || "";
     const w = td.clientWidth;
     const h = td.clientHeight;
@@ -280,6 +289,7 @@ function handleFile(file) {
     } catch (err) {
       currentData = null;
       enableOutput(false);
+      showPreview(false);
       setMessage("Fehler: " + err.message, "error");
     }
   };
@@ -301,9 +311,26 @@ function generatePDF() {
     pagebreak: { mode: ["css", "legacy"], avoid: [".komp-group", "tr", ".kenntnis", ".fach-title"] }
   };
   setMessage("PDF wird erstellt …", "ok");
+
+  // Report während der Erzeugung auf feste Druckbreite setzen, damit die
+  // PDF-Ausgabe unabhängig von der (breiteren) Bildschirmdarstellung ist.
+  const PRINT_WIDTH = 820;
+  const prevWidth = element.style.width;
+  const prevMaxWidth = element.style.maxWidth;
+  const restore = () => {
+    element.style.width = prevWidth;
+    element.style.maxWidth = prevMaxWidth;
+    renderRotatedLabels();           // Beschriftungen für Bildschirmbreite neu
+  };
+  element.style.width = PRINT_WIDTH + "px";
+  element.style.maxWidth = PRINT_WIDTH + "px";
+  renderRotatedLabels();             // Beschriftungen an Druckbreite anpassen
+
   html2pdf().set(opt).from(element).save().then(() => {
+    restore();
     setMessage("✓ PDF wurde heruntergeladen.", "ok");
   }).catch((e) => {
+    restore();
     setMessage("PDF-Erstellung fehlgeschlagen: " + e.message, "error");
   });
 }
@@ -323,6 +350,7 @@ function enableOutput(on) {
    Event-Bindung
    ============================================================ */
 document.addEventListener("DOMContentLoaded", () => {
+  showPreview(false);   // Vorschau erst nach erfolgreichem Upload zeigen
   document.getElementById("btn-template").addEventListener("click", downloadTemplate);
   document.getElementById("btn-pdf").addEventListener("click", generatePDF);
   document.getElementById("btn-print").addEventListener("click", () => window.print());
