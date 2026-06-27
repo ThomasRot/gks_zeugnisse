@@ -13,7 +13,7 @@ Alle Daten bleiben im Browser – es wird nichts hochgeladen oder gespeichert.
 ### Gedachter Ablauf
 
 Die **Schulleitung** erstellt die Vorlage einmal: trägt in die Spalten *Fach /
-Kompetenz / Subkompetenz* den festen Lehrplan ein und verteilt die Datei. Die
+Kompetenz / Fähigkeit* den festen Lehrplan ein und verteilt die Datei. Die
 **Lehrkraft** trägt dann nur noch *Name*, die Spalte *Bewertung* (1–5 oder `*`)
 und die Kommentare ein – kein Format-Wissen nötig.
 
@@ -51,20 +51,20 @@ python3 -m http.server 8000
 
 ## Excel-Format
 
-Ein Tabellenblatt **„Zeugnis"** mit oben den Kopfdaten und darunter einer
-Tabelle (eine Zeile pro Subkompetenz):
+Ein Tabellenblatt **„Zeugnis"** mit oben links den Kopfdaten, oben rechts der
+Skala-Legende und darunter einer Tabelle (eine Zeile pro **Fähigkeit**):
 
-| A | B |
-|---|---|
-| Name | Jannes Kotowski |
-| Schuljahr | 2025/2026 |
-| Kommentar | Zusammenfassender Kommentar … |
+| A | B | | D | E |
+|---|---|---|---|---|
+| Name | Jannes Kotowski | | Bewertung | Bedeutung |
+| Schuljahr | 2025/2026 | | 1 | sicher |
+| Kommentar | Zusammenfassender Kommentar … | | … | … |
 
 *(Leerzeile)*
 
-| Fach | Kompetenz | Subkompetenz | Bewertung | Fachkommentar |
-|------|-----------|--------------|-----------|---------------|
-| Deutsch | Sprechen und Zuhören | Du gibst Informationen korrekt wieder. | 1 | Optionaler Kommentar |
+| Fach | Kompetenz | Fähigkeit | Bewertung | Fachkommentar |
+|------|-----------|-----------|-----------|---------------|
+| Deutsch | Sprechen und Zuhören | Du gibst Informationen korrekt wieder. | 1 | Jannes arbeitet… |
 |  |  | Du beziehst dich auf die Beiträge anderer. | 2 |  |
 |  | Lesen | Du liest altersgemäße Texte flüssig. | 3 |  |
 
@@ -72,7 +72,12 @@ Regeln:
 
 - **Leere Zellen bei *Fach* / *Kompetenz*** bedeuten „wie in der Zeile darüber".
 - Die Tabelle beginnt an der Zeile, deren erste Zelle exakt **`Fach`** ist.
+- **Fachkommentar = ein Feld pro Fach** (in der ersten Zeile des Fachs). Wird
+  in einer Fähigkeit ein **`*`** vergeben, **muss** der Fachkommentar dieses
+  Fachs ausgefüllt sein – sonst meldet die Seite einen Fehler.
 - Zeilenumbrüche in einer Zelle (z. B. im Kommentar) werden übernommen.
+- Die **Seitenzahl** ist kein Feld – sie ergibt sich automatisch aus der
+  tatsächlichen Seite (laufende Kopfzeile im PDF).
 
 ### Bewertungsskala (Spalte `Bewertung`)
 

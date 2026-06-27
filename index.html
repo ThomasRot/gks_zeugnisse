@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Grundschulzeugnis-Generator</title>
+  <title>Zeugnis-Generator · Georg-Kerschensteiner-Schule</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -11,7 +11,13 @@
 <body>
   <div class="app-controls no-print">
     <header class="app-header">
-      <h1>📘 Grundschulzeugnis-Generator</h1>
+      <div class="brand">
+        <img class="brand-logo" src="GKS-Logo.png" alt="Georg-Kerschensteiner-Schule" />
+        <div class="brand-text">
+          <h1>Zeugnis-Generator</h1>
+          <p class="brand-sub">Georg-Kerschensteiner-Schule</p>
+        </div>
+      </div>
       <p class="subtitle">
         Laden Sie die Vorlage herunter, füllen Sie sie aus, laden Sie sie wieder hoch &amp; erzeugen Sie ein PDF.
         Alles passiert lokal in Ihrem Browser – es werden keine Daten hochgeladen.
@@ -23,7 +29,7 @@
         <span class="step-num">1</span>
         <div>
           <strong>Vorlage herunterladen</strong>
-          <p>Eine Excel-Datei (.xlsx). Kann auch mit OpenOffice oder LibreOffice geöffnet werden.</p>
+          <p>Eine Excel-Datei (.xlsx) mit einer Zeile je Fähigkeit. Kann auch mit OpenOffice oder LibreOffice geöffnet werden.</p>
           <button id="btn-template" class="btn btn-secondary">📥 Excel-Vorlage herunterladen</button>
         </div>
       </div>

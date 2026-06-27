@@ -221,11 +221,17 @@ function validate(data) {
   if (typeof data !== "object" || data === null) throw new Error("Die Datei enthält keine gültigen Daten.");
   if (!data.name || !String(data.name).trim()) throw new Error('Kein Name gefunden (Zelle rechts neben "Name").');
   if (!Array.isArray(data.faecher) || data.faecher.length === 0) {
-    throw new Error('Keine Fächer gefunden. Stimmt die Kopfzeile "Fach | Kompetenz | Subkompetenz | Bewertung"?');
+    throw new Error('Keine Fächer gefunden. Stimmt die Kopfzeile "Fach | Kompetenz | Fähigkeit | Bewertung"?');
   }
   data.faecher.forEach((f, i) => {
     if (!f.name) throw new Error(`Fach #${i + 1}: Name fehlt.`);
     if (!Array.isArray(f.kompetenzen)) throw new Error(`Fach "${f.name}": Kompetenzen fehlen.`);
+    // Wenn irgendeine Fähigkeit "*" hat, ist ein Fachkommentar Pflicht.
+    const hasStar = f.kompetenzen.some((k) =>
+      (k.subkompetenzen || []).some((s) => s.bewertung === "*"));
+    if (hasStar && !(f.kommentar && String(f.kommentar).trim())) {
+      throw new Error(`Fach "${f.name}": Es wurde "*" vergeben – dann muss die Spalte „Fachkommentar" ausgefüllt sein.`);
+    }
   });
 }
 

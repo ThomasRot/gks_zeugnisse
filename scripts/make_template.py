@@ -147,14 +147,32 @@ faecher = [
 ]
 
 
+# Skala-Legende, die oben rechts (Spalten D/E) neben den Metadaten steht
+LEGEND = [
+    ("Bewertung", "Bedeutung"),
+    ("1", "sicher"),
+    ("2", "überwiegend"),
+    ("3", "teilweise"),
+    ("4", "mit Unterstützung"),
+    ("5", "noch nicht erworben (→)"),
+    ("*", "siehe Kommentar"),
+]
+META = [
+    ("Name", ""),
+    ("Schuljahr", "2025/2026"),
+    ("Kommentar", ""),
+]
+HEADER_ROW = len(LEGEND) + 2  # Metadaten/Legende (7) + Leerzeile -> Kopf in Zeile 9
+
+
 def build_rows():
-    rows = [
-        ["Name", ""],
-        ["Schuljahr", "2025/2026"],
-        ["Kommentar", ""],
-        [],
-        ["Fach", "Kompetenz", "Subkompetenz", "Bewertung", "Fachkommentar"],
-    ]
+    rows = []
+    for idx in range(len(LEGEND)):
+        a, b = META[idx] if idx < len(META) else ("", "")
+        d, e = LEGEND[idx]
+        rows.append([a, b, "", d, e])
+    rows.append([])  # Leerzeile
+    rows.append(["Fach", "Kompetenz", "Fähigkeit", "Bewertung", "Fachkommentar"])
     for fach, komps in faecher:
         first_fach_row = True
         for komp, subs in komps:
@@ -178,10 +196,10 @@ ws.title = "Zeugnis"
 for r in build_rows():
     ws.append(r)
 
-# Formatierung (Tabellenkopf jetzt Zeile 5, Metadaten A1–A3)
-for c in ws[5]:
+# Formatierung: Tabellenkopf, Metadaten (A1–A3) und Legenden-Kopf (D1/E1)
+for c in ws[HEADER_ROW]:
     c.font = Font(bold=True)
-for addr in ("A1", "A2", "A3"):
+for addr in ("A1", "A2", "A3", "D1", "E1"):
     ws[addr].font = Font(bold=True)
 widths = {"A": 16, "B": 26, "C": 70, "D": 11, "E": 26}
 for col, w in widths.items():
@@ -220,4 +238,4 @@ wb.save(out)
 # kleine Zusammenfassung
 total_subs = sum(len(subs) for _, komps in faecher for _, subs in komps)
 print("saved", out)
-print("Faecher:", len(faecher), "| Subkompetenzen:", total_subs, "| Datenzeilen:", len(build_rows()) - 6)
+print("Faecher:", len(faecher), "| Faehigkeiten:", total_subs, "| Datenzeilen:", len(build_rows()) - HEADER_ROW)
