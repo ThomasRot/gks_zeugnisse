@@ -14,28 +14,9 @@
 -------------------------------------------------------------- */
 const RATING_FRACTION = { 1: 1.0, 2: 0.75, 3: 0.5, 4: 0.25 };
 
-/* ---------- Excel-Tabellenkopf ----------
-   Die Vorlage ist eine Tabelle mit einer Zeile pro Subkompetenz. Leere Zellen
-   in "Fach"/"Kompetenz" bedeuten "wie in der Zeile darüber". */
-const TABLE_HEADER = ["Fach", "Kompetenz", "Subkompetenz", "Bewertung", "Fachkommentar"];
-
-/* Beispielinhalt der Vorlage (Array-of-Arrays für die Excel-Datei) */
-function templateRows() {
-  return [
-    ["Name", "Vorname Nachname"],
-    ["Schuljahr", "2025/2026"],
-    ["Seite", 1],
-    ["Kommentar", "Hier steht der zusammenfassende Kommentar zum Schuljahr."],
-    [],
-    TABLE_HEADER,
-    ["Deutsch", "Sprechen und Zuhören", "Du gibst Informationen korrekt wieder.", 1, "Optionaler Kommentar zum Fach."],
-    ["", "", "Du beziehst dich auf die Beiträge anderer.", 2, ""],
-    ["", "Lesen", "Du liest altersgemäße Texte flüssig.", 3, ""],
-    ["", "", "Du entnimmst Texten gezielt Informationen.", "*", ""],
-    ["Mathematik", "Zahlen und Operationen", "Du rechnest im Zahlenraum bis 1000 sicher.", 2, ""],
-    ["", "", "Du löst Sachaufgaben selbstständig.", 5, ""]
-  ];
-}
+/* Die ausfüllbare Excel-Vorlage liegt als statische Datei im Projekt
+   (zeugnis-vorlage.xlsx, alle Fächer/Kompetenzen der GKS). */
+const TEMPLATE_FILE = "zeugnis-vorlage.xlsx";
 
 /* ============================================================
    SVG-Kreis (Tortenstück) für die Bewertung
@@ -195,12 +176,18 @@ function renderFach(fach) {
   // Jede Kompetenz wird zu einem eigenen <tbody class="komp-group">.
   // CSS markiert diese Gruppen mit "break-inside: avoid", sodass eine
   // Kompetenz nie über einen Seitenumbruch hinweg getrennt wird.
+  // Hat das Fach überhaupt benannte Kompetenzen? Wenn nein (z. B. Kunst, Musik),
+  // entfällt die linke (gedrehte) Beschriftungsspalte komplett.
+  const hasKompNames = (fach.kompetenzen || []).some((k) => k.name && String(k.name).trim());
+
   const groups = (fach.kompetenzen || []).map((komp) => {
     const subs = komp.subkompetenzen || [];
     const rows = subs.map((sub, i) => {
-      const labelCell = i === 0
-        ? `<td class="komp-label" rowspan="${subs.length}" data-label="${esc(komp.name)}"></td>`
-        : "";
+      const labelCell = !hasKompNames
+        ? ""
+        : i === 0
+          ? `<td class="komp-label" rowspan="${subs.length}" data-label="${esc(komp.name)}"></td>`
+          : "";
       return `
         <tr>
           ${labelCell}
@@ -241,28 +228,14 @@ function validate(data) {
 /* ============================================================
    Aktionen
    ============================================================ */
-/* Erzeugt die Excel-Vorlage (zwei Blätter: Zeugnis + Bewertungsskala) */
+/* Lädt die statische Excel-Vorlage herunter */
 function downloadTemplate() {
-  const ws = XLSX.utils.aoa_to_sheet(templateRows());
-  ws["!cols"] = [{ wch: 14 }, { wch: 24 }, { wch: 50 }, { wch: 11 }, { wch: 28 }];
-
-  const help = XLSX.utils.aoa_to_sheet([
-    ["Bewertung", "Bedeutung"],
-    [1, "sicher (voller Kreis)"],
-    [2, "überwiegend (3/4-Kreis)"],
-    [3, "teilweise (1/2-Kreis)"],
-    [4, "mit Unterstützung (1/4-Kreis)"],
-    [5, "→  Kompetenz wird noch erworben"],
-    ["*", "siehe Kommentar"],
-    [],
-    ["Hinweis", "Leere Zellen bei Fach/Kompetenz = wie in der Zeile darüber."]
-  ]);
-  help["!cols"] = [{ wch: 12 }, { wch: 44 }];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Zeugnis");
-  XLSX.utils.book_append_sheet(wb, help, "Bewertungsskala");
-  XLSX.writeFile(wb, "zeugnis-vorlage.xlsx");
+  const a = document.createElement("a");
+  a.href = TEMPLATE_FILE;
+  a.download = TEMPLATE_FILE;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 /* Normalisiert einen Bewertungswert aus einer Zelle */

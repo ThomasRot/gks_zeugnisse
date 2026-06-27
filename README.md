@@ -96,8 +96,14 @@ Regeln:
 | `styles.css`            | Layout & Druck-/PDF-Stile              |
 | `app.js`                | Logik: Vorlage, Upload, Rendern, PDF   |
 | `GKS-Logo.png`          | Schul-Logo (oben rechts in der Kopfzeile) |
-| `beispiel-zeugnis.xlsx` | Ausgefülltes Excel-Beispiel zum Testen |
+| `zeugnis-vorlage.xlsx`  | **Ausfüllbare Vorlage** mit allen GKS-Fächern/Kompetenzen (Download-Button) |
+| `beispiel-zeugnis.xlsx` | Kurzes, ausgefülltes Excel-Beispiel zum Testen |
 | `beispiel-zeugnis.json` | Gleiches Beispiel als JSON (Datenmodell-Referenz) |
+
+> Der Button „Excel-Vorlage herunterladen" liefert `zeugnis-vorlage.xlsx`.
+> Um Fächer/Kompetenzen zu ändern, einfach diese Datei in Excel/Numbers
+> bearbeiten und ersetzen – kein Code nötig. Alternativ lässt sie sich aus
+> `scripts/make_template.py` (openpyxl) neu erzeugen.
 
 > Das Logo wird über `GKS-Logo.png` eingebunden. Zum Austauschen einfach die
 > Datei gleichen Namens ersetzen (oder den Dateinamen in `app.js` anpassen).
