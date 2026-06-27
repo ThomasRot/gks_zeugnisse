@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grundschulzeugnis-Generator</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+  <div class="app-controls no-print">
+    <header class="app-header">
+      <h1>📘 Grundschulzeugnis-Generator</h1>
+      <p class="subtitle">
+        Laden Sie die Vorlage herunter, füllen Sie sie aus, laden Sie sie wieder hoch &amp; erzeugen Sie ein PDF.
+        Alles passiert lokal in Ihrem Browser – es werden keine Daten hochgeladen.
+      </p>
+    </header>
+
+    <section class="steps">
+      <div class="step">
+        <span class="step-num">1</span>
+        <div>
+          <strong>Vorlage herunterladen</strong>
+          <p>Eine JSON-Datei, die Sie mit den Zeugnisdaten ausfüllen.</p>
+          <button id="btn-template" class="btn btn-secondary">📥 Vorlage herunterladen</button>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-num">2</span>
+        <div>
+          <strong>Ausgefüllte Datei hochladen</strong>
+          <p>Wählen Sie Ihre ausgefüllte JSON-Datei aus.</p>
+          <label class="btn btn-secondary" for="file-input">📂 JSON-Datei auswählen</label>
+          <input type="file" id="file-input" accept="application/json,.json" hidden />
+          <span id="file-name" class="file-name"></span>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-num">3</span>
+        <div>
+          <strong>PDF erzeugen</strong>
+          <p>Prüfen Sie die Vorschau und laden Sie das PDF herunter oder drucken Sie es.</p>
+          <button id="btn-pdf" class="btn btn-primary" disabled>⬇️ PDF herunterladen</button>
+          <button id="btn-print" class="btn btn-secondary" disabled>🖨️ Drucken</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="message" class="message" role="status"></div>
+
+    <details class="legend-help">
+      <summary>Bewertungsskala (Werte in der JSON-Datei)</summary>
+      <ul>
+        <li><code>1</code> = sicher (voller Kreis)</li>
+        <li><code>2</code> = überwiegend (¾-Kreis)</li>
+        <li><code>3</code> = teilweise (½-Kreis)</li>
+        <li><code>4</code> = mit Unterstützung (¼-Kreis)</li>
+        <li><code>5</code> = <strong>→</strong> Kompetenz wird noch erworben</li>
+        <li><code>"*"</code> = siehe Kommentar</li>
+      </ul>
+    </details>
+
+    <h2 class="preview-title">Vorschau</h2>
+  </div>
+
+  <!-- Das eigentliche Zeugnis wird hier gerendert und ins PDF/Druck übernommen -->
+  <main id="report" class="report" aria-live="polite">
+    <p class="placeholder no-print">Noch keine Datei geladen. Laden Sie oben eine ausgefüllte JSON-Datei hoch.</p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

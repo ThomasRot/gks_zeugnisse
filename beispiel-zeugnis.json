@@ -1,0 +1,55 @@
+{
+  "name": "Jannes Kotowski",
+  "schuljahr": "2025/2026",
+  "seite": 3,
+  "faecher": [
+    {
+      "name": "Deutsch",
+      "kompetenzen": [
+        {
+          "name": "Sprechen und Zuhören",
+          "subkompetenzen": [
+            { "text": "Du gibst Informationen korrekt wieder.", "bewertung": 1 },
+            { "text": "Du beziehst dich auf die Beiträge anderer.", "bewertung": 1 },
+            { "text": "Du trägst Texte verständlich vor.", "bewertung": 2 }
+          ]
+        },
+        {
+          "name": "Lesen",
+          "subkompetenzen": [
+            { "text": "Du liest altersgemäße Texte flüssig, sinnbetont und in angemessenem Tempo, auch wenn der Text dir noch unbekannt ist und längere Sätze enthält.", "bewertung": 2 },
+            { "text": "Du entnimmst Texten gezielt Informationen.\nDazu nutzt du Überschriften, Bilder und den Zusammenhang.", "bewertung": "*" }
+          ]
+        },
+        {
+          "name": "Schreiben",
+          "subkompetenzen": [
+            { "text": "Du schreibst gut lesbar und formklar.", "bewertung": 3 },
+            { "text": "Du wendest Rechtschreibregeln an.", "bewertung": 4 }
+          ]
+        }
+      ],
+      "kommentar": "Jannes beteiligt sich rege am Unterrichtsgespräch."
+    },
+    {
+      "name": "Mathematik",
+      "kompetenzen": [
+        {
+          "name": "Zahlen und Operationen",
+          "subkompetenzen": [
+            { "text": "Du rechnest im Zahlenraum bis 1000 sicher.", "bewertung": 2 },
+            { "text": "Du löst Sachaufgaben selbstständig.", "bewertung": 5 }
+          ]
+        },
+        {
+          "name": "Größen und Messen",
+          "subkompetenzen": [
+            { "text": "Du schätzt und misst Längen sachgerecht.", "bewertung": 3 }
+          ]
+        }
+      ],
+      "kommentar": ""
+    }
+  ],
+  "kommentar": "Du hast an der Theater-AG und an der … AG teilgenommen.\n\nLieber Jannes, wir freuen uns auf das vierte Schuljahr mit dir und wünschen dir weiterhin viel Erfolg und Freude beim Lernen!"
+}
