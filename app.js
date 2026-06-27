@@ -340,14 +340,26 @@ function handleFile(file) {
   reader.onload = () => {
     try {
       const wb = XLSX.read(new Uint8Array(reader.result), { type: "array" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-      applyData(rowsToData(rows));
+      applyData(rowsToData(pickZeugnisRows(wb)));
     } catch (err) {
       onLoadError(err);
     }
   };
   reader.readAsArrayBuffer(file);
+}
+
+/* Wählt aus der Arbeitsmappe das richtige Blatt: bevorzugt das mit einer
+   "Fach"-Kopfzeile (egal an welcher Position), sonst "Zeugnis", sonst das erste.
+   Robust gegen umsortierte/zusätzliche Blätter (z. B. nach Numbers-Export). */
+function pickZeugnisRows(wb) {
+  const read = (name) => XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: "" });
+  const hasFach = (rows) => rows.some((r) => String((r && r[0]) || "").trim().toLowerCase() === "fach");
+  for (const name of wb.SheetNames) {
+    const rows = read(name);
+    if (hasFach(rows)) return rows;
+  }
+  const fallback = wb.SheetNames.indexOf("Zeugnis") >= 0 ? "Zeugnis" : wb.SheetNames[0];
+  return read(fallback);
 }
 
 function generatePDF() {
