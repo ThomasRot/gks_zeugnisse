@@ -108,12 +108,12 @@ function renderReport(data) {
   // gezeichnet (siehe generatePDF). Daher ohne manuelle Seitenangabe.
   const head = `
     <div class="doc-header no-pdf">
-      <img class="dh-logo" src="GKS-Logo.png" alt="Georg-Kerschensteiner-Schule" />
       <div class="doc-head">
         <span class="dh-seite">Seite 1</span>
         <span class="dh-mid">des Zeugnisses von <span class="dh-name">${esc(data.name)}</span></span>
         <span class="dh-jahr">Schuljahr ${esc(data.schuljahr)}</span>
       </div>
+      <img class="dh-logo" src="GKS-Logo.png" alt="Georg-Kerschensteiner-Schule" />
     </div>`;
 
   const faecher = (data.faecher || []).map(renderFach).join("");
@@ -356,25 +356,24 @@ function generatePDF() {
   const safeName = String(currentData.name || "Zeugnis").replace(/[^\wäöüÄÖÜß-]+/g, "_");
   const name = String(currentData.name || "");
   const schuljahr = String(currentData.schuljahr || "");
-  const ML = 18, MR = 18, MT = 20, MB = 18;
-  // Inhaltsbreite (A4 210mm − Ränder) in px; html2canvas muss exakt damit
-  // rendern, sonst skaliert html2pdf und die Schrift weicht von der Vorschau ab.
-  const contentPx = Math.round((210 - ML - MR) * 96 / 25.4);
+  // Seitliche Ränder (SIDE) stecken im Element-Padding und werden 1:1
+  // mitgerendert -> KEINE horizontale Skalierung (gleiche Schrift wie Vorschau).
+  // html2pdf-Rand daher links/rechts 0, nur oben (für Kopfzeile) und unten.
+  const SIDE = 18, MT = 18, MB = 18;
   const opt = {
-    // [oben, links, unten, rechts] in mm – Seitenränder NUR hier (nicht zusätzlich
-    // über das Element-Padding), damit Vorschau und PDF gleich aussehen.
-    margin: [MT, ML, MB, MR],
+    // [oben, links, unten, rechts] in mm
+    margin: [MT, 0, MB, 0],
     filename: `Zeugnis_${safeName}.pdf`,
     image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", width: contentPx, windowWidth: contentPx },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
     pagebreak: { mode: ["css", "legacy"], avoid: [".komp-group", "tr", ".kenntnis", ".fach-title"] }
   };
   setMessage("PDF wird erstellt …", "ok");
 
   // Für den Export: Vorschau-Kopfzeile ausblenden (Kopfzeile zeichnet jsPDF pro
-  // Seite) und per Klasse die Export-Maße erzwingen (Breite 174 mm, kein
-  // Padding/Schatten). So entstehen Ränder NUR aus opt.margin -> Vorschau = PDF.
+  // Seite) und oben/unten-Padding entfernen (kommt aus opt.margin). Seitliches
+  // Padding (18mm) bleibt = die linken/rechten Seitenränder.
   const hidden = element.querySelectorAll(".no-pdf");
   const restore = () => {
     hidden.forEach((e) => (e.style.display = ""));
@@ -395,15 +394,15 @@ function generatePDF() {
       pdf.setFontSize(9);
       pdf.setTextColor(120);
       const y = 12;
-      pdf.text(`Seite ${i}`, ML, y);
-      if (name) pdf.text(`des Zeugnisses von ${name}`, ML + 20, y);
+      pdf.text(`Seite ${i}`, SIDE, y);
+      if (name) pdf.text(`des Zeugnisses von ${name}`, SIDE + 20, y);
       if (schuljahr) {
         const jahr = `Schuljahr ${schuljahr}`;
-        pdf.text(jahr, pw - MR - 34 - pdf.getTextWidth(jahr), y);
+        pdf.text(jahr, pw - SIDE - 34 - pdf.getTextWidth(jahr), y);
       }
       if (logoDataUrl) {
         const lw = 30, lh = lw * logoRatio;
-        pdf.addImage(logoDataUrl, "PNG", pw - MR - lw, 6, lw, lh);
+        pdf.addImage(logoDataUrl, "PNG", pw - SIDE - lw, 6, lw, lh);
       }
     }
   }).save().then(() => {

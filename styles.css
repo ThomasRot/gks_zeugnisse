@@ -139,7 +139,8 @@ body {
 }
 
 .preview-title {
-  max-width: var(--page-width);
+  width: 210mm;              /* über der Vorschauseite (gleich breit/zentriert) */
+  max-width: 100%;
   margin: 24px auto 8px;
   font-size: 1.2rem;
   color: #444;
@@ -153,33 +154,38 @@ body {
   width: 210mm;                 /* echte A4-Breite -> Vorschau = PDF */
   max-width: 100%;
   margin: 0 auto 60px;
-  padding: 16mm 18mm 18mm;      /* entspricht den PDF-Seitenrändern */
+  padding: 12mm 18mm 18mm;      /* Seitenränder; oben knapp (wenig Platz über dem Logo) */
   color: #000;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 11pt;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.14);  /* Seitenoptik ohne harten Rahmen */
 }
 
-/* Während der PDF-Erzeugung: Inhaltsbreite = A4 − 2×18 mm, keine eigenen
-   Ränder/Schatten (Seitenränder kommen aus html2pdf). !important, weil html2pdf
-   den Klon nach der .report-Regel rendert. */
+/* Während der PDF-Erzeugung: seitliche Ränder (18mm Padding) bleiben Teil des
+   Elements und werden von html2pdf 1:1 mitgerendert (volle Seitenbreite, keine
+   horizontale Skalierung → gleiche Schrift/Umbrüche wie die Vorschau). Oben/unten
+   übernimmt html2pdf (margin), daher hier 0. Kein Schatten im PDF. */
 .report.pdf-mode {
-  width: 174mm !important;
-  max-width: 174mm !important;
-  padding: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
   box-shadow: none !important;
 }
 
 .placeholder { color: var(--muted); text-align: center; padding: 40px 0; }
 
-/* Kopfzeile + Logo (Vorschau): Logo rechts, Text fließt links daneben */
-.doc-header { overflow: hidden; margin-bottom: 22px; }
+/* Kopfzeile + Logo (Vorschau): Text links, Logo rechts, unten bündig */
+.doc-header {
+  display: flex;
+  align-items: flex-end;        /* Logo-Unterkante bündig mit der Textzeile */
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;           /* nur kleiner Abstand zur Legende */
+}
 .dh-logo {
-  float: right;
   height: 42px;
   width: auto;
   max-width: 200px;
-  margin: 0 0 6px 18px;
+  flex: 0 0 auto;
 }
 .doc-head {
   color: #7a7a7a;
