@@ -151,7 +151,6 @@ def build_rows():
     rows = [
         ["Name", ""],
         ["Schuljahr", "2025/2026"],
-        ["Seite", 1],
         ["Kommentar", ""],
         [],
         ["Fach", "Kompetenz", "Subkompetenz", "Bewertung", "Fachkommentar"],
@@ -179,10 +178,10 @@ ws.title = "Zeugnis"
 for r in build_rows():
     ws.append(r)
 
-# Formatierung
-for c in ws[6]:
+# Formatierung (Tabellenkopf jetzt Zeile 5, Metadaten A1–A3)
+for c in ws[5]:
     c.font = Font(bold=True)
-for addr in ("A1", "A2", "A3", "A4"):
+for addr in ("A1", "A2", "A3"):
     ws[addr].font = Font(bold=True)
 widths = {"A": 16, "B": 26, "C": 70, "D": 11, "E": 26}
 for col, w in widths.items():

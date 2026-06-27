@@ -58,7 +58,6 @@ Tabelle (eine Zeile pro Subkompetenz):
 |---|---|
 | Name | Jannes Kotowski |
 | Schuljahr | 2025/2026 |
-| Seite | 3 |
 | Kommentar | Zusammenfassender Kommentar … |
 
 *(Leerzeile)*

@@ -103,14 +103,18 @@ function renderReport(data) {
       </tr>
     </table>`;
 
+  // Kopfzeile nur für die Bildschirm-Vorschau (Klasse "no-pdf"). Im PDF wird
+  // stattdessen auf JEDER Seite eine laufende Kopfzeile mit echter Seitenzahl
+  // gezeichnet (siehe generatePDF). Daher ohne manuelle Seitenangabe.
   const head = `
-    <div class="doc-top">
-      <img class="dh-logo" src="GKS-Logo.png" alt="Georg-Kerschensteiner-Schule" />
-    </div>
-    <div class="doc-head">
-      <span class="dh-seite">Seite ${esc(data.seite ?? 1)}</span>
-      <span class="dh-mid">des Zeugnisses von <span class="dh-name">${esc(data.name)}</span></span>
-      <span class="dh-jahr">Schuljahr ${esc(data.schuljahr)}</span>
+    <div class="doc-header no-pdf">
+      <div class="doc-top">
+        <img class="dh-logo" src="GKS-Logo.png" alt="Georg-Kerschensteiner-Schule" />
+      </div>
+      <div class="doc-head">
+        <span class="dh-mid">des Zeugnisses von <span class="dh-name">${esc(data.name)}</span></span>
+        <span class="dh-jahr">Schuljahr ${esc(data.schuljahr)}</span>
+      </div>
     </div>`;
 
   const faecher = (data.faecher || []).map(renderFach).join("");
@@ -251,18 +255,17 @@ function normBewertung(v) {
 
 /* Wandelt die Zeilen einer Excel-Tabelle (Array-of-Arrays) in das Datenmodell um */
 function rowsToData(rows) {
-  const data = { name: "", schuljahr: "", seite: 1, faecher: [], kommentar: "" };
+  const data = { name: "", schuljahr: "", faecher: [], kommentar: "" };
   const isHeader = (r) => String((r && r[0]) || "").trim().toLowerCase() === "fach";
 
   let i = 0;
-  // 1) Metadaten oben (Name / Schuljahr / Seite / Kommentar) bis zur Tabellen-Kopfzeile
+  // 1) Metadaten oben (Name / Schuljahr / Kommentar) bis zur Tabellen-Kopfzeile
   for (; i < rows.length; i++) {
     if (isHeader(rows[i])) { i++; break; }
     const key = String((rows[i] && rows[i][0]) || "").trim().toLowerCase();
     const val = rows[i] && rows[i][1] !== undefined ? rows[i][1] : "";
     if (key === "name") data.name = String(val).trim();
     else if (key === "schuljahr") data.schuljahr = String(val).trim();
-    else if (key === "seite") data.seite = val === "" ? 1 : val;
     else if (key === "kommentar") data.kommentar = String(val);
   }
 
@@ -339,9 +342,12 @@ function generatePDF() {
   if (!currentData) return;
   const element = document.getElementById("report");
   const safeName = String(currentData.name || "Zeugnis").replace(/[^\wäöüÄÖÜß-]+/g, "_");
+  const name = String(currentData.name || "");
+  const schuljahr = String(currentData.schuljahr || "");
+  const ML = 18, MR = 18;
   const opt = {
-    // [oben, links, unten, rechts] in mm – mehr Rand links/rechts/unten
-    margin: [14, 18, 20, 18],
+    // [oben, links, unten, rechts] in mm – oben mehr Platz für die Kopfzeile
+    margin: [24, ML, 20, MR],
     filename: `Zeugnis_${safeName}.pdf`,
     image: { type: "jpeg", quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
@@ -350,27 +356,71 @@ function generatePDF() {
   };
   setMessage("PDF wird erstellt …", "ok");
 
-  // Report während der Erzeugung auf feste Druckbreite setzen, damit die
-  // PDF-Ausgabe unabhängig von der (breiteren) Bildschirmdarstellung ist.
+  // Vorschau-Kopfzeile ausblenden (im PDF zeichnen wir sie pro Seite selbst)
+  // und Report auf feste Druckbreite setzen (unabhängig von der Bildschirmbreite).
   const PRINT_WIDTH = 820;
+  const hidden = element.querySelectorAll(".no-pdf");
   const prevWidth = element.style.width;
   const prevMaxWidth = element.style.maxWidth;
   const restore = () => {
+    hidden.forEach((e) => (e.style.display = ""));
     element.style.width = prevWidth;
     element.style.maxWidth = prevMaxWidth;
-    renderRotatedLabels();           // Beschriftungen für Bildschirmbreite neu
+    renderRotatedLabels();
   };
+  hidden.forEach((e) => (e.style.display = "none"));
   element.style.width = PRINT_WIDTH + "px";
   element.style.maxWidth = PRINT_WIDTH + "px";
-  renderRotatedLabels();             // Beschriftungen an Druckbreite anpassen
+  renderRotatedLabels();
 
-  html2pdf().set(opt).from(element).save().then(() => {
+  html2pdf().set(opt).from(element).toPdf().get("pdf").then((pdf) => {
+    // Laufende Kopfzeile mit echter Seitenzahl auf jeder Seite
+    const total = pdf.internal.getNumberOfPages();
+    const pw = pdf.internal.pageSize.getWidth();
+    for (let i = 1; i <= total; i++) {
+      pdf.setPage(i);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(120);
+      const y = 12;
+      pdf.text(`Seite ${i}`, ML, y);
+      if (name) pdf.text(`des Zeugnisses von ${name}`, ML + 20, y);
+      if (schuljahr) {
+        const jahr = `Schuljahr ${schuljahr}`;
+        pdf.text(jahr, pw - MR - 34 - pdf.getTextWidth(jahr), y);
+      }
+      if (logoDataUrl) {
+        const lw = 30, lh = lw * logoRatio;
+        pdf.addImage(logoDataUrl, "PNG", pw - MR - lw, 6, lw, lh);
+      }
+    }
+  }).save().then(() => {
     restore();
     setMessage("✓ PDF wurde heruntergeladen.", "ok");
   }).catch((e) => {
     restore();
     setMessage("PDF-Erstellung fehlgeschlagen: " + e.message, "error");
   });
+}
+
+/* Logo einmalig als dataURL laden (für die jsPDF-Kopfzeile) */
+let logoDataUrl = null;
+let logoRatio = 0.25;
+function loadLogo() {
+  const img = new Image();
+  img.onload = () => {
+    if (img.naturalWidth) logoRatio = img.naturalHeight / img.naturalWidth;
+    try {
+      const c = document.createElement("canvas");
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      c.getContext("2d").drawImage(img, 0, 0);
+      logoDataUrl = c.toDataURL("image/png");
+    } catch (e) {
+      logoDataUrl = null;
+    }
+  };
+  img.src = "GKS-Logo.png";
 }
 
 function setMessage(text, type) {
@@ -389,6 +439,7 @@ function enableOutput(on) {
    ============================================================ */
 document.addEventListener("DOMContentLoaded", () => {
   showPreview(false);   // Vorschau erst nach erfolgreichem Upload zeigen
+  loadLogo();
   document.getElementById("btn-template").addEventListener("click", downloadTemplate);
   document.getElementById("btn-pdf").addEventListener("click", generatePDF);
   document.getElementById("btn-print").addEventListener("click", () => window.print());
