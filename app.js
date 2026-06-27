@@ -4,187 +4,11 @@
 
 "use strict";
 
-/* ---------- Bewertungsskala ----------
-   1 = sicher              -> voller Kreis        (fraction 1.00)
-   2 = überwiegend         -> 3/4-Kreis           (fraction 0.75)
-   3 = teilweise           -> 1/2-Kreis           (fraction 0.50)
-   4 = mit Unterstützung   -> 1/4-Kreis           (fraction 0.25)
-   5 = "→"                 -> wird noch erworben
-   "*" = siehe Kommentar
--------------------------------------------------------------- */
-const RATING_FRACTION = { 1: 1.0, 2: 0.75, 3: 0.5, 4: 0.25 };
-
 /* Die ausfüllbare Excel-Vorlage liegt als statische Datei im Projekt
-   (zeugnis-vorlage.xlsx, alle Fächer/Kompetenzen der GKS). */
+   (zeugnis-vorlage.xlsx, alle Fächer/Kompetenzen der GKS).
+   Bewertungsskala: 1=sicher, 2=überwiegend, 3=teilweise, 4=mit Unterstützung,
+   5=„→" (wird noch erworben), "*"=siehe Kommentar. */
 const TEMPLATE_FILE = "zeugnis-vorlage.xlsx";
-
-/* ============================================================
-   SVG-Kreis (Tortenstück) für die Bewertung
-   ============================================================ */
-function pieSVG(fraction) {
-  const size = 16, r = 7, c = size / 2;
-  const head = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">`;
-  if (fraction >= 1) {
-    return head +
-      `<circle cx="${c}" cy="${c}" r="${r}" fill="#000" stroke="#000" stroke-width="1"/></svg>`;
-  }
-  const base = `<circle cx="${c}" cy="${c}" r="${r}" fill="#fff" stroke="#000" stroke-width="1"/>`;
-  let wedge = "";
-  if (fraction > 0) {
-    const theta = fraction * 2 * Math.PI;
-    const endX = (c + r * Math.sin(theta)).toFixed(2);
-    const endY = (c - r * Math.cos(theta)).toFixed(2);
-    const large = fraction > 0.5 ? 1 : 0;
-    wedge = `<path d="M${c},${c} L${c},${c - r} A${r},${r} 0 ${large} 1 ${endX},${endY} Z" fill="#000"/>`;
-  }
-  return head + base + wedge + "</svg>";
-}
-
-/* Dicker Block-Pfeil (für "Kompetenz wird noch erworben") als SVG */
-function arrowSVG() {
-  return '<svg class="arrow" width="24" height="15" viewBox="0 0 24 15" xmlns="http://www.w3.org/2000/svg">' +
-    '<path d="M1,4.3 L13,4.3 L13,0.5 L23,7.5 L13,14.5 L13,10.7 L1,10.7 Z" fill="#000"/></svg>';
-}
-
-/* Liefert das Symbol-HTML für einen Bewertungswert */
-function ratingSymbol(value) {
-  if (value === "" || value === null || value === undefined) return "";
-  if (value === "*") return '<span class="sym-text">*</span>';
-  const num = typeof value === "string" ? value.trim() : value;
-  if (num === 5 || num === "5" || num === "→" || num === "->") {
-    return arrowSVG();
-  }
-  const frac = RATING_FRACTION[num];
-  if (frac === undefined) return '<span class="sym-text">?</span>';
-  return pieSVG(frac);
-}
-
-/* ============================================================
-   HTML-Helfer
-   ============================================================ */
-function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-/* Wie esc(), wandelt zusätzlich Zeilenumbrüche in <br> um */
-function escMultiline(s) {
-  return esc(s).replace(/\r?\n/g, "<br>");
-}
-
-/* ============================================================
-   Zeugnis rendern
-   ============================================================ */
-function renderReport(data) {
-  const report = document.getElementById("report");
-
-  const legend = `
-    <table class="legend">
-      <tr>
-        <td class="legend-icon">${pieSVG(0.25)}</td>
-        <td class="legend-icon">${pieSVG(0.5)}</td>
-        <td class="legend-icon">${pieSVG(0.75)}</td>
-        <td class="legend-icon">${pieSVG(1)}</td>
-      </tr>
-      <tr>
-        <td class="legend-label">mit Unterstützung</td>
-        <td class="legend-label">teilweise</td>
-        <td class="legend-label">überwiegend</td>
-        <td class="legend-label">sicher</td>
-      </tr>
-    </table>
-    <table class="legend-notes">
-      <tr>
-        <td>*&nbsp;&nbsp;&nbsp;siehe Kommentar</td>
-        <td>${arrowSVG()}&nbsp;&nbsp;Kompetenz wird noch erworben</td>
-      </tr>
-    </table>`;
-
-  // Kopfzeile nur für die Bildschirm-Vorschau (Klasse "no-pdf"). Im PDF wird
-  // stattdessen auf JEDER Seite eine laufende Kopfzeile mit echter Seitenzahl
-  // gezeichnet (siehe generatePDF). Daher ohne manuelle Seitenangabe.
-  const head = `
-    <div class="doc-header no-pdf">
-      <div class="doc-head">
-        <span class="dh-seite">Seite 1</span>
-        <span class="dh-mid">des Zeugnisses von <span class="dh-name">${esc(data.name)}</span></span>
-        <span class="dh-jahr">Schuljahr ${esc(data.schuljahr)}</span>
-      </div>
-      <img class="dh-logo" src="GKS-Logo.png" alt="Georg-Kerschensteiner-Schule" />
-    </div>`;
-
-  const faecher = (data.faecher || []).map(renderFach).join("");
-
-  const gesamt = data.kommentar && String(data.kommentar).trim()
-    ? `<div class="gesamt-kommentar">${escMultiline(data.kommentar)}</div>`
-    : "";
-
-  const kenntnis = `
-    <div class="kenntnis">
-      <span class="kenntnis-label">Kenntnis genommen:</span>
-      <div class="sign-field">
-        <div class="sign-rule"></div>
-        <div class="sign-caption">Ort und Datum</div>
-      </div>
-      <div class="sign-field">
-        <div class="sign-rule"></div>
-        <div class="sign-caption">Unterschrift eines Erziehungsberechtigten</div>
-      </div>
-    </div>`;
-
-  report.innerHTML = head + legend + faecher + gesamt + kenntnis;
-  showPreview(true);
-}
-
-/* Vorschau (Überschrift + Dokument) nur anzeigen, wenn Daten geladen sind */
-function showPreview(on) {
-  const title = document.getElementById("preview-title");
-  const report = document.getElementById("report");
-  if (title) title.style.display = on ? "" : "none";
-  if (report) report.style.display = on ? "" : "none";
-}
-
-function renderFach(fach) {
-  // Jede Kompetenz wird zu einem eigenen <tbody class="komp-group">.
-  // CSS markiert diese Gruppen mit "break-inside: avoid", sodass eine
-  // Kompetenz nie über einen Seitenumbruch hinweg getrennt wird.
-  // Hat das Fach überhaupt benannte Kompetenzen? Wenn nein (z. B. Kunst, Musik),
-  // entfällt die linke (gedrehte) Beschriftungsspalte komplett.
-  const hasKompNames = (fach.kompetenzen || []).some((k) => k.name && String(k.name).trim());
-
-  const groups = (fach.kompetenzen || []).map((komp) => {
-    const subs = komp.subkompetenzen || [];
-    const rows = subs.map((sub, i) => {
-      const labelCell = !hasKompNames
-        ? ""
-        : i === 0
-          ? `<td class="komp-label" rowspan="${subs.length}"><span>${esc(komp.name)}</span></td>`
-          : "";
-      return `
-        <tr>
-          ${labelCell}
-          <td class="sub-text">${escMultiline(sub.text)}</td>
-          <td class="sub-rating">${ratingSymbol(sub.bewertung)}</td>
-        </tr>`;
-    }).join("");
-    return `<tbody class="komp-group">${rows}</tbody>`;
-  }).join("");
-
-  // Fachkommentar als eigene, kursive Zeile unter der untersten Kompetenz
-  const cols = hasKompNames ? 3 : 2;
-  const kommentarRow = (fach.kommentar && String(fach.kommentar).trim())
-    ? `<tbody><tr class="fach-kommentar-row"><td colspan="${cols}"><em>${escMultiline(fach.kommentar)}</em></td></tr></tbody>`
-    : "";
-
-  return `
-    <div class="fach-block">
-      <h2 class="fach-title">${esc(fach.name)}</h2>
-      <table class="fach-table">${groups}${kommentarRow}</table>
-    </div>`;
-}
 
 /* ============================================================
    Validierung
@@ -290,15 +114,15 @@ let currentData = null;
 function applyData(data) {
   validate(data);
   currentData = data;
-  renderReport(data);
-  setMessage("✓ Datei geladen. Vorschau unten – jetzt PDF erzeugen.", "ok");
+  const nFach = data.faecher.length;
+  const nFae = data.faecher.reduce((a, f) => a + (f.kompetenzen || []).reduce((b, k) => b + (k.subkompetenzen || []).length, 0), 0);
+  setMessage(`✓ Geladen: ${data.name} · ${nFach} Fächer · ${nFae} Fähigkeiten. Jetzt PDF herunterladen.`, "ok");
   enableOutput(true);
 }
 
 function onLoadError(err) {
   currentData = null;
   enableOutput(false);
-  showPreview(false);
   setMessage("Fehler: " + err.message, "error");
 }
 
@@ -560,7 +384,6 @@ function enableOutput(on) {
    Event-Bindung
    ============================================================ */
 document.addEventListener("DOMContentLoaded", () => {
-  showPreview(false);   // Vorschau erst nach erfolgreichem Upload zeigen
   loadLogo();
   document.getElementById("btn-template").addEventListener("click", downloadTemplate);
   document.getElementById("btn-pdf").addEventListener("click", generatePDF);
