@@ -316,28 +316,23 @@ function onLoadError(err) {
 }
 
 function handleFile(file) {
-  const name = file.name.toLowerCase();
-  const isExcel = /\.(xlsx|xls)$/.test(name);
+  if (!/\.(xlsx|xls)$/.test(file.name.toLowerCase())) {
+    onLoadError(new Error("Bitte eine Excel-Datei (.xlsx) auswählen."));
+    return;
+  }
   const reader = new FileReader();
   reader.onerror = () => setMessage("Die Datei konnte nicht gelesen werden.", "error");
   reader.onload = () => {
     try {
-      let data;
-      if (isExcel) {
-        const wb = XLSX.read(new Uint8Array(reader.result), { type: "array" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-        data = rowsToData(rows);
-      } else {
-        data = JSON.parse(reader.result);
-      }
-      applyData(data);
+      const wb = XLSX.read(new Uint8Array(reader.result), { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+      applyData(rowsToData(rows));
     } catch (err) {
       onLoadError(err);
     }
   };
-  if (isExcel) reader.readAsArrayBuffer(file);
-  else reader.readAsText(file);
+  reader.readAsArrayBuffer(file);
 }
 
 function generatePDF() {

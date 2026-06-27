@@ -74,8 +74,6 @@ Regeln:
 - **Leere Zellen bei *Fach* / *Kompetenz*** bedeuten „wie in der Zeile darüber".
 - Die Tabelle beginnt an der Zeile, deren erste Zelle exakt **`Fach`** ist.
 - Zeilenumbrüche in einer Zelle (z. B. im Kommentar) werden übernommen.
-- **JSON** mit gleichem Datenmodell wird beim Upload ebenfalls akzeptiert
-  (z. B. zum maschinellen Befüllen).
 
 ### Bewertungsskala (Spalte `Bewertung`)
 
@@ -98,7 +96,6 @@ Regeln:
 | `GKS-Logo.png`          | Schul-Logo (oben rechts in der Kopfzeile) |
 | `zeugnis-vorlage.xlsx`  | **Ausfüllbare Vorlage** mit allen GKS-Fächern/Kompetenzen (Download-Button) |
 | `beispiel-zeugnis.xlsx` | Kurzes, ausgefülltes Excel-Beispiel zum Testen |
-| `beispiel-zeugnis.json` | Gleiches Beispiel als JSON (Datenmodell-Referenz) |
 
 > Der Button „Excel-Vorlage herunterladen" liefert `zeugnis-vorlage.xlsx`.
 > Um Fächer/Kompetenzen zu ändern, einfach diese Datei in Excel/Numbers
