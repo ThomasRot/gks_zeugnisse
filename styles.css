@@ -44,17 +44,20 @@ body {
 .brand-logo {
   height: 60px;
   width: auto;
+  margin-left: auto;   /* Logo nach rechts */
 }
 .brand-text h1 {
   margin: 0;
   font-size: 1.6rem;
   line-height: 1.1;
+  white-space: nowrap;
 }
 .brand-sub {
   margin: 3px 0 0;
   color: #555;
   font-weight: 600;
   font-size: 0.98rem;
+  white-space: nowrap;
 }
 
 .subtitle {

@@ -219,7 +219,7 @@ function renderFach(fach) {
    ============================================================ */
 function validate(data) {
   if (typeof data !== "object" || data === null) throw new Error("Die Datei enthält keine gültigen Daten.");
-  if (!data.name || !String(data.name).trim()) throw new Error('Kein Name gefunden (Zelle rechts neben "Name").');
+  if (!data.name || !String(data.name).trim()) throw new Error('Der Name des Schülers fehlt (Zelle rechts neben "Name").');
   if (!Array.isArray(data.faecher) || data.faecher.length === 0) {
     throw new Error('Keine Fächer gefunden. Stimmt die Kopfzeile "Fach | Kompetenz | Fähigkeit | Bewertung"?');
   }
