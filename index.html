@@ -6,6 +6,7 @@
   <title>Grundschulzeugnis-Generator</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
   <div class="app-controls no-print">
@@ -22,8 +23,8 @@
         <span class="step-num">1</span>
         <div>
           <strong>Vorlage herunterladen</strong>
-          <p>Eine JSON-Datei, die Sie mit den Zeugnisdaten ausfüllen.</p>
-          <button id="btn-template" class="btn btn-secondary">📥 Vorlage herunterladen</button>
+          <p>Eine Excel-Datei (.xlsx) mit einer Zeile je Subkompetenz. Lässt sich in Numbers (Mac) oder Excel öffnen.</p>
+          <button id="btn-template" class="btn btn-secondary">📥 Excel-Vorlage herunterladen</button>
         </div>
       </div>
 
@@ -31,9 +32,9 @@
         <span class="step-num">2</span>
         <div>
           <strong>Ausgefüllte Datei hochladen</strong>
-          <p>Wählen Sie Ihre ausgefüllte JSON-Datei aus.</p>
-          <label class="btn btn-secondary" for="file-input">📂 JSON-Datei auswählen</label>
-          <input type="file" id="file-input" accept="application/json,.json" hidden />
+          <p>Wählen Sie Ihre ausgefüllte Excel-Datei aus (.xlsx). JSON wird ebenfalls akzeptiert.</p>
+          <label class="btn btn-secondary" for="file-input">📂 Datei auswählen</label>
+          <input type="file" id="file-input" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/json,.json" hidden />
           <span id="file-name" class="file-name"></span>
         </div>
       </div>
@@ -52,7 +53,7 @@
     <div id="message" class="message" role="status"></div>
 
     <details class="legend-help">
-      <summary>Bewertungsskala (Werte in der JSON-Datei)</summary>
+      <summary>Bewertungsskala (Werte in der Spalte „Bewertung")</summary>
       <ul>
         <li><code>1</code> = sicher (voller Kreis)</li>
         <li><code>2</code> = überwiegend (¾-Kreis)</li>

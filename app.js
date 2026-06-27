@@ -14,48 +14,28 @@
 -------------------------------------------------------------- */
 const RATING_FRACTION = { 1: 1.0, 2: 0.75, 3: 0.5, 4: 0.25 };
 
-/* ---------- Beispiel-/Leervorlage ---------- */
-const TEMPLATE = {
-  name: "Vorname Nachname",
-  schuljahr: "2025/2026",
-  seite: 1,
-  faecher: [
-    {
-      name: "Deutsch",
-      kompetenzen: [
-        {
-          name: "Sprechen und Zuhören",
-          subkompetenzen: [
-            { text: "Du gibst Informationen korrekt wieder.", bewertung: 1 },
-            { text: "Du beziehst dich auf die Beiträge anderer.", bewertung: 2 }
-          ]
-        },
-        {
-          name: "Lesen",
-          subkompetenzen: [
-            { text: "Du liest altersgemäße Texte flüssig.", bewertung: 3 },
-            { text: "Du entnimmst Texten gezielt Informationen.", bewertung: "*" }
-          ]
-        }
-      ],
-      kommentar: "Optionaler Kommentar zum Fach Deutsch."
-    },
-    {
-      name: "Mathematik",
-      kompetenzen: [
-        {
-          name: "Zahlen und Operationen",
-          subkompetenzen: [
-            { text: "Du rechnest im Zahlenraum bis 1000 sicher.", bewertung: 2 },
-            { text: "Du löst Sachaufgaben selbstständig.", bewertung: 5 }
-          ]
-        }
-      ],
-      kommentar: ""
-    }
-  ],
-  kommentar: "Hier steht der zusammenfassende Kommentar zum Schuljahr."
-};
+/* ---------- Excel-Tabellenkopf ----------
+   Die Vorlage ist eine Tabelle mit einer Zeile pro Subkompetenz. Leere Zellen
+   in "Fach"/"Kompetenz" bedeuten "wie in der Zeile darüber". */
+const TABLE_HEADER = ["Fach", "Kompetenz", "Subkompetenz", "Bewertung", "Fachkommentar"];
+
+/* Beispielinhalt der Vorlage (Array-of-Arrays für die Excel-Datei) */
+function templateRows() {
+  return [
+    ["Name", "Vorname Nachname"],
+    ["Schuljahr", "2025/2026"],
+    ["Seite", 1],
+    ["Kommentar", "Hier steht der zusammenfassende Kommentar zum Schuljahr."],
+    [],
+    TABLE_HEADER,
+    ["Deutsch", "Sprechen und Zuhören", "Du gibst Informationen korrekt wieder.", 1, "Optionaler Kommentar zum Fach."],
+    ["", "", "Du beziehst dich auf die Beiträge anderer.", 2, ""],
+    ["", "Lesen", "Du liest altersgemäße Texte flüssig.", 3, ""],
+    ["", "", "Du entnimmst Texten gezielt Informationen.", "*", ""],
+    ["Mathematik", "Zahlen und Operationen", "Du rechnest im Zahlenraum bis 1000 sicher.", 2, ""],
+    ["", "", "Du löst Sachaufgaben selbstständig.", 5, ""]
+  ];
+}
 
 /* ============================================================
    SVG-Kreis (Tortenstück) für die Bewertung
@@ -87,6 +67,7 @@ function arrowSVG() {
 
 /* Liefert das Symbol-HTML für einen Bewertungswert */
 function ratingSymbol(value) {
+  if (value === "" || value === null || value === undefined) return "";
   if (value === "*") return '<span class="sym-text">*</span>';
   const num = typeof value === "string" ? value.trim() : value;
   if (num === 5 || num === "5" || num === "→" || num === "->") {
@@ -246,55 +227,144 @@ function renderFach(fach) {
    Validierung
    ============================================================ */
 function validate(data) {
-  if (typeof data !== "object" || data === null) throw new Error("Die Datei enthält kein gültiges JSON-Objekt.");
-  if (!("name" in data)) throw new Error('Feld "name" fehlt.');
-  if (!Array.isArray(data.faecher)) throw new Error('Feld "faecher" fehlt oder ist keine Liste.');
+  if (typeof data !== "object" || data === null) throw new Error("Die Datei enthält keine gültigen Daten.");
+  if (!data.name || !String(data.name).trim()) throw new Error('Kein Name gefunden (Zelle rechts neben "Name").');
+  if (!Array.isArray(data.faecher) || data.faecher.length === 0) {
+    throw new Error('Keine Fächer gefunden. Stimmt die Kopfzeile "Fach | Kompetenz | Subkompetenz | Bewertung"?');
+  }
   data.faecher.forEach((f, i) => {
-    if (!f.name) throw new Error(`Fach #${i + 1}: "name" fehlt.`);
-    if (!Array.isArray(f.kompetenzen)) throw new Error(`Fach "${f.name}": "kompetenzen" fehlt oder ist keine Liste.`);
+    if (!f.name) throw new Error(`Fach #${i + 1}: Name fehlt.`);
+    if (!Array.isArray(f.kompetenzen)) throw new Error(`Fach "${f.name}": Kompetenzen fehlen.`);
   });
 }
 
 /* ============================================================
    Aktionen
    ============================================================ */
+/* Erzeugt die Excel-Vorlage (zwei Blätter: Zeugnis + Bewertungsskala) */
 function downloadTemplate() {
-  const blob = new Blob([JSON.stringify(TEMPLATE, null, 2)], { type: "application/json" });
-  triggerDownload(blob, "zeugnis-vorlage.json");
+  const ws = XLSX.utils.aoa_to_sheet(templateRows());
+  ws["!cols"] = [{ wch: 14 }, { wch: 24 }, { wch: 50 }, { wch: 11 }, { wch: 28 }];
+
+  const help = XLSX.utils.aoa_to_sheet([
+    ["Bewertung", "Bedeutung"],
+    [1, "sicher (voller Kreis)"],
+    [2, "überwiegend (3/4-Kreis)"],
+    [3, "teilweise (1/2-Kreis)"],
+    [4, "mit Unterstützung (1/4-Kreis)"],
+    [5, "→  Kompetenz wird noch erworben"],
+    ["*", "siehe Kommentar"],
+    [],
+    ["Hinweis", "Leere Zellen bei Fach/Kompetenz = wie in der Zeile darüber."]
+  ]);
+  help["!cols"] = [{ wch: 12 }, { wch: 44 }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Zeugnis");
+  XLSX.utils.book_append_sheet(wb, help, "Bewertungsskala");
+  XLSX.writeFile(wb, "zeugnis-vorlage.xlsx");
 }
 
-function triggerDownload(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+/* Normalisiert einen Bewertungswert aus einer Zelle */
+function normBewertung(v) {
+  if (v === null || v === undefined) return "";
+  const s = String(v).trim();
+  if (s === "") return "";
+  if (s === "*") return "*";
+  if (s === "→" || s === "->") return 5;
+  const n = Number(s.replace(",", "."));
+  return Number.isFinite(n) ? n : s;
+}
+
+/* Wandelt die Zeilen einer Excel-Tabelle (Array-of-Arrays) in das Datenmodell um */
+function rowsToData(rows) {
+  const data = { name: "", schuljahr: "", seite: 1, faecher: [], kommentar: "" };
+  const isHeader = (r) => String((r && r[0]) || "").trim().toLowerCase() === "fach";
+
+  let i = 0;
+  // 1) Metadaten oben (Name / Schuljahr / Seite / Kommentar) bis zur Tabellen-Kopfzeile
+  for (; i < rows.length; i++) {
+    if (isHeader(rows[i])) { i++; break; }
+    const key = String((rows[i] && rows[i][0]) || "").trim().toLowerCase();
+    const val = rows[i] && rows[i][1] !== undefined ? rows[i][1] : "";
+    if (key === "name") data.name = String(val).trim();
+    else if (key === "schuljahr") data.schuljahr = String(val).trim();
+    else if (key === "seite") data.seite = val === "" ? 1 : val;
+    else if (key === "kommentar") data.kommentar = String(val);
+  }
+
+  // 2) Tabellenzeilen (mit "fill-down" für Fach/Kompetenz)
+  let curFach = null, curKomp = null;
+  for (; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const fachName = String(r[0] || "").trim();
+    const kompName = String(r[1] || "").trim();
+    const subText = String(r[2] || "").trim();
+    const fachKomm = String(r[4] || "").trim();
+    if (!fachName && !kompName && !subText) continue;
+
+    if (fachName) {
+      curFach = { name: fachName, kompetenzen: [], kommentar: "" };
+      data.faecher.push(curFach);
+      curKomp = null;
+    }
+    if (!curFach) continue;
+    if (fachKomm && !curFach.kommentar) curFach.kommentar = fachKomm;
+    if (kompName) {
+      curKomp = { name: kompName, subkompetenzen: [] };
+      curFach.kompetenzen.push(curKomp);
+    }
+    if (subText) {
+      if (!curKomp) {
+        curKomp = { name: "", subkompetenzen: [] };
+        curFach.kompetenzen.push(curKomp);
+      }
+      curKomp.subkompetenzen.push({ text: subText, bewertung: normBewertung(r[3]) });
+    }
+  }
+  return data;
 }
 
 let currentData = null;
 
+function applyData(data) {
+  validate(data);
+  currentData = data;
+  renderReport(data);
+  setMessage("✓ Datei geladen. Vorschau unten – jetzt PDF erzeugen.", "ok");
+  enableOutput(true);
+}
+
+function onLoadError(err) {
+  currentData = null;
+  enableOutput(false);
+  showPreview(false);
+  setMessage("Fehler: " + err.message, "error");
+}
+
 function handleFile(file) {
+  const name = file.name.toLowerCase();
+  const isExcel = /\.(xlsx|xls)$/.test(name);
   const reader = new FileReader();
+  reader.onerror = () => setMessage("Die Datei konnte nicht gelesen werden.", "error");
   reader.onload = () => {
     try {
-      const data = JSON.parse(reader.result);
-      validate(data);
-      currentData = data;
-      renderReport(data);
-      setMessage("✓ Datei geladen. Vorschau unten – jetzt PDF erzeugen.", "ok");
-      enableOutput(true);
+      let data;
+      if (isExcel) {
+        const wb = XLSX.read(new Uint8Array(reader.result), { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+        data = rowsToData(rows);
+      } else {
+        data = JSON.parse(reader.result);
+      }
+      applyData(data);
     } catch (err) {
-      currentData = null;
-      enableOutput(false);
-      showPreview(false);
-      setMessage("Fehler: " + err.message, "error");
+      onLoadError(err);
     }
   };
-  reader.onerror = () => setMessage("Die Datei konnte nicht gelesen werden.", "error");
-  reader.readAsText(file);
+  if (isExcel) reader.readAsArrayBuffer(file);
+  else reader.readAsText(file);
 }
 
 function generatePDF() {

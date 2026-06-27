@@ -3,12 +3,19 @@
 Eine reine **Frontend-Website** (kein Server, kein Build-Schritt), mit der man
 Grundschulzeugnisse als PDF erzeugt:
 
-1. **Vorlage herunterladen** – eine JSON-Datei.
+1. **Excel-Vorlage herunterladen** – eine `.xlsx`-Datei (öffnet in Numbers/Excel).
 2. **Ausfüllen** mit den Zeugnisdaten.
 3. **Hochladen** – das Zeugnis wird als Vorschau dargestellt.
 4. **PDF herunterladen** oder direkt **drucken**.
 
 Alle Daten bleiben im Browser – es wird nichts hochgeladen oder gespeichert.
+
+### Gedachter Ablauf
+
+Die **Schulleitung** erstellt die Vorlage einmal: trägt in die Spalten *Fach /
+Kompetenz / Subkompetenz* den festen Lehrplan ein und verteilt die Datei. Die
+**Lehrkraft** trägt dann nur noch *Name*, die Spalte *Bewertung* (1–5 oder `*`)
+und die Kommentare ein – kein Format-Wissen nötig.
 
 ## Lokal ausprobieren
 
@@ -42,32 +49,35 @@ python3 -m http.server 8000
 
 > Es ist kein Build nötig – die Dateien werden direkt statisch ausgeliefert.
 
-## JSON-Format
+## Excel-Format
 
-```jsonc
-{
-  "name": "Jannes Kotowski",   // Name des Kindes
-  "schuljahr": "2025/2026",
-  "seite": 3,                   // Seitenzahl in der Kopfzeile (optional)
-  "faecher": [
-    {
-      "name": "Deutsch",
-      "kompetenzen": [
-        {
-          "name": "Sprechen und Zuhören",   // erscheint gedreht links
-          "subkompetenzen": [
-            { "text": "Du gibst Informationen korrekt wieder.", "bewertung": 1 }
-          ]
-        }
-      ],
-      "kommentar": "Optionaler Kommentar zum Fach."
-    }
-  ],
-  "kommentar": "Zusammenfassender Kommentar zum Schuljahr."
-}
-```
+Ein Tabellenblatt **„Zeugnis"** mit oben den Kopfdaten und darunter einer
+Tabelle (eine Zeile pro Subkompetenz):
 
-### Bewertungsskala (`bewertung`)
+| A | B |
+|---|---|
+| Name | Jannes Kotowski |
+| Schuljahr | 2025/2026 |
+| Seite | 3 |
+| Kommentar | Zusammenfassender Kommentar … |
+
+*(Leerzeile)*
+
+| Fach | Kompetenz | Subkompetenz | Bewertung | Fachkommentar |
+|------|-----------|--------------|-----------|---------------|
+| Deutsch | Sprechen und Zuhören | Du gibst Informationen korrekt wieder. | 1 | Optionaler Kommentar |
+|  |  | Du beziehst dich auf die Beiträge anderer. | 2 |  |
+|  | Lesen | Du liest altersgemäße Texte flüssig. | 3 |  |
+
+Regeln:
+
+- **Leere Zellen bei *Fach* / *Kompetenz*** bedeuten „wie in der Zeile darüber".
+- Die Tabelle beginnt an der Zeile, deren erste Zelle exakt **`Fach`** ist.
+- Zeilenumbrüche in einer Zelle (z. B. im Kommentar) werden übernommen.
+- **JSON** mit gleichem Datenmodell wird beim Upload ebenfalls akzeptiert
+  (z. B. zum maschinellen Befüllen).
+
+### Bewertungsskala (Spalte `Bewertung`)
 
 | Wert  | Bedeutung            | Darstellung      |
 |-------|----------------------|------------------|
@@ -86,11 +96,13 @@ python3 -m http.server 8000
 | `styles.css`            | Layout & Druck-/PDF-Stile              |
 | `app.js`                | Logik: Vorlage, Upload, Rendern, PDF   |
 | `GKS-Logo.png`          | Schul-Logo (oben rechts in der Kopfzeile) |
-| `beispiel-zeugnis.json` | Ausgefülltes Beispiel zum Testen       |
+| `beispiel-zeugnis.xlsx` | Ausgefülltes Excel-Beispiel zum Testen |
+| `beispiel-zeugnis.json` | Gleiches Beispiel als JSON (Datenmodell-Referenz) |
 
 > Das Logo wird über `GKS-Logo.png` eingebunden. Zum Austauschen einfach die
 > Datei gleichen Namens ersetzen (oder den Dateinamen in `app.js` anpassen).
 
-Die PDF-Erzeugung nutzt [html2pdf.js](https://github.com/eKoopmans/html2pdf.js)
-(via CDN). Alternativ erzeugt der **Drucken**-Knopf über den Browser-Dialog
+Die PDF-Erzeugung nutzt [html2pdf.js](https://github.com/eKoopmans/html2pdf.js),
+das Lesen/Schreiben der Excel-Dateien [SheetJS](https://sheetjs.com/) – beide
+via CDN. Alternativ erzeugt der **Drucken**-Knopf über den Browser-Dialog
 „Als PDF speichern" eine besonders saubere, vektorbasierte PDF.
