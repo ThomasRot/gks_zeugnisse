@@ -161,19 +161,21 @@ body {
 
 .placeholder { color: var(--muted); text-align: center; padding: 40px 0; }
 
-/* Kopfzeile + Logo */
-.doc-top { text-align: right; margin-bottom: 4px; }
-.dh-logo { height: 38px; width: auto; max-width: 200px; }
-
+/* Kopfzeile + Logo (Vorschau): Logo rechts, Text fließt links daneben */
+.doc-header { overflow: hidden; margin-bottom: 22px; }
+.dh-logo {
+  float: right;
+  height: 42px;
+  width: auto;
+  max-width: 200px;
+  margin: 0 0 6px 18px;
+}
 .doc-head {
-  display: flex;
-  gap: 8px;
   color: #7a7a7a;
   font-size: 10pt;
-  margin-bottom: 22px;
 }
-.doc-head .dh-seite { min-width: 70px; }
-.doc-head .dh-mid { flex: 1; }
+.doc-head .dh-seite { margin-right: 22px; }
+.doc-head .dh-mid { margin-right: 22px; }
 .doc-head .dh-name { font-weight: 400; }
 
 /* Legende oben */
@@ -270,15 +272,14 @@ body {
 .sub-rating svg { vertical-align: middle; }
 .sym-text { font-size: 13pt; font-weight: 700; line-height: 1; }
 
-/* Kommentar pro Fach */
-.fach-kommentar {
-  border: 1px solid var(--line);
-  border-top: none;
-  padding: 6px 8px;
-  font-size: 9.5pt;
-  min-height: 26px;
+/* Fachkommentar als kursive Zeile unter der untersten Kompetenz */
+.fach-kommentar-row td {
+  font-style: italic;
+  color: #333;
+  background: #fafafa;
+  font-size: 10pt;
+  padding: 5px 8px;
 }
-.fach-kommentar .lbl { font-weight: 700; color: #444; }
 
 /* Gesamtkommentar – als Fließtext (wie in der Vorlage, ohne Rahmen) */
 .gesamt-kommentar {

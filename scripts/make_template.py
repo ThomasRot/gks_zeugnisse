@@ -172,7 +172,7 @@ def build_rows():
         d, e = LEGEND[idx]
         rows.append([a, b, "", d, e])
     rows.append([])  # Leerzeile
-    rows.append(["Fach", "Kompetenz", "Fähigkeit", "Bewertung", "Fachkommentar"])
+    rows.append(["Fach", "Kompetenz", "Fähigkeit", "Bewertung"])
     for fach, komps in faecher:
         first_fach_row = True
         for komp, subs in komps:
@@ -183,11 +183,21 @@ def build_rows():
                     komp if first_komp_row else "",
                     sub,
                     "",   # Bewertung leer -> Lehrkraft fuellt
-                    "",   # Fachkommentar
                 ])
                 first_fach_row = False
                 first_komp_row = False
+        # Fachkommentar als eigene Zeile UNTER der untersten Kompetenz.
+        # Marker: Kompetenz-Spalte == "Kommentar"; Text steht in Spalte C.
+        rows.append(["", "Kommentar", "", ""])
     return rows
+
+
+def italicize_comment_rows(ws):
+    """Setzt die Fachkommentar-Zeilen (Spalte B == 'Kommentar') kursiv."""
+    for r in range(1, ws.max_row + 1):
+        if str(ws.cell(row=r, column=2).value or "").strip().lower() == "kommentar" and r > HEADER_ROW:
+            for col in range(1, 5):
+                ws.cell(row=r, column=col).font = Font(italic=True)
 
 
 wb = Workbook()
@@ -207,6 +217,7 @@ for col, w in widths.items():
 for r in ws.iter_rows():
     for cell in r:
         cell.alignment = Alignment(vertical="top", wrap_text=True)
+italicize_comment_rows(ws)
 
 # Blatt Bewertungsskala
 hs = wb.create_sheet("Bewertungsskala")

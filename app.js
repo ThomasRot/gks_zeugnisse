@@ -108,10 +108,9 @@ function renderReport(data) {
   // gezeichnet (siehe generatePDF). Daher ohne manuelle Seitenangabe.
   const head = `
     <div class="doc-header no-pdf">
-      <div class="doc-top">
-        <img class="dh-logo" src="GKS-Logo.png" alt="Georg-Kerschensteiner-Schule" />
-      </div>
+      <img class="dh-logo" src="GKS-Logo.png" alt="Georg-Kerschensteiner-Schule" />
       <div class="doc-head">
+        <span class="dh-seite">Seite 1</span>
         <span class="dh-mid">des Zeugnisses von <span class="dh-name">${esc(data.name)}</span></span>
         <span class="dh-jahr">Schuljahr ${esc(data.schuljahr)}</span>
       </div>
@@ -202,15 +201,16 @@ function renderFach(fach) {
     return `<tbody class="komp-group">${rows}</tbody>`;
   }).join("");
 
-  const kommentar = (fach.kommentar && String(fach.kommentar).trim())
-    ? `<div class="fach-kommentar"><span class="lbl">Kommentar:</span> ${escMultiline(fach.kommentar)}</div>`
-    : `<div class="fach-kommentar"><span class="lbl">Kommentar:</span></div>`;
+  // Fachkommentar als eigene, kursive Zeile unter der untersten Kompetenz
+  const cols = hasKompNames ? 3 : 2;
+  const kommentarRow = (fach.kommentar && String(fach.kommentar).trim())
+    ? `<tbody><tr class="fach-kommentar-row"><td colspan="${cols}"><em>${escMultiline(fach.kommentar)}</em></td></tr></tbody>`
+    : "";
 
   return `
     <div class="fach-block">
       <h2 class="fach-title">${esc(fach.name)}</h2>
-      <table class="fach-table">${groups}</table>
-      ${kommentar}
+      <table class="fach-table">${groups}${kommentarRow}</table>
     </div>`;
 }
 
@@ -281,9 +281,8 @@ function rowsToData(rows) {
     const r = rows[i] || [];
     const fachName = String(r[0] || "").trim();
     const kompName = String(r[1] || "").trim();
-    const subText = String(r[2] || "").trim();
-    const fachKomm = String(r[4] || "").trim();
-    if (!fachName && !kompName && !subText) continue;
+    const cellC = String(r[2] || "").trim();
+    if (!fachName && !kompName && !cellC) continue;
 
     if (fachName) {
       curFach = { name: fachName, kompetenzen: [], kommentar: "" };
@@ -291,17 +290,24 @@ function rowsToData(rows) {
       curKomp = null;
     }
     if (!curFach) continue;
-    if (fachKomm && !curFach.kommentar) curFach.kommentar = fachKomm;
+
+    // Fachkommentar-Zeile: Marker "Kommentar" in der Kompetenz-Spalte,
+    // der Text steht in Spalte C (Fähigkeit).
+    if (kompName.toLowerCase() === "kommentar") {
+      curFach.kommentar = String(r[2] || "").trim();
+      continue;
+    }
+
     if (kompName) {
       curKomp = { name: kompName, subkompetenzen: [] };
       curFach.kompetenzen.push(curKomp);
     }
-    if (subText) {
+    if (cellC) {
       if (!curKomp) {
         curKomp = { name: "", subkompetenzen: [] };
         curFach.kompetenzen.push(curKomp);
       }
-      curKomp.subkompetenzen.push({ text: subText, bewertung: normBewertung(r[3]) });
+      curKomp.subkompetenzen.push({ text: cellC, bewertung: normBewertung(r[3]) });
     }
   }
   return data;

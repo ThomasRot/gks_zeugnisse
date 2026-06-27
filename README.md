@@ -62,19 +62,22 @@ Skala-Legende und darunter einer Tabelle (eine Zeile pro **Fähigkeit**):
 
 *(Leerzeile)*
 
-| Fach | Kompetenz | Fähigkeit | Bewertung | Fachkommentar |
-|------|-----------|-----------|-----------|---------------|
-| Deutsch | Sprechen und Zuhören | Du gibst Informationen korrekt wieder. | 1 | Jannes arbeitet… |
-|  |  | Du beziehst dich auf die Beiträge anderer. | 2 |  |
-|  | Lesen | Du liest altersgemäße Texte flüssig. | 3 |  |
+| Fach | Kompetenz | Fähigkeit | Bewertung |
+|------|-----------|-----------|-----------|
+| Deutsch | Sprechen und Zuhören | Du gibst Informationen korrekt wieder. | 1 |
+|  |  | Du beziehst dich auf die Beiträge anderer. | 2 |
+|  | Lesen | Du liest altersgemäße Texte flüssig. | 3 |
+|  | **Kommentar** | Jannes arbeitet konzentriert mit. |  |
 
 Regeln:
 
 - **Leere Zellen bei *Fach* / *Kompetenz*** bedeuten „wie in der Zeile darüber".
 - Die Tabelle beginnt an der Zeile, deren erste Zelle exakt **`Fach`** ist.
-- **Fachkommentar = ein Feld pro Fach** (in der ersten Zeile des Fachs). Wird
-  in einer Fähigkeit ein **`*`** vergeben, **muss** der Fachkommentar dieses
-  Fachs ausgefüllt sein – sonst meldet die Seite einen Fehler.
+- **Fachkommentar = eigene Zeile** unter der untersten Kompetenz des Fachs:
+  In der Spalte *Kompetenz* steht **`Kommentar`**, der Text in der Spalte
+  *Fähigkeit*. Diese Zeile wird im Zeugnis **kursiv** dargestellt. Wird in einer
+  Fähigkeit ein **`*`** vergeben, **muss** dieser Kommentar ausgefüllt sein –
+  sonst meldet die Seite einen Fehler.
 - Zeilenumbrüche in einer Zelle (z. B. im Kommentar) werden übernommen.
 - Die **Seitenzahl** ist kein Feld – sie ergibt sich automatisch aus der
   tatsächlichen Seite (laufende Kopfzeile im PDF).
