@@ -150,13 +150,24 @@ body {
    ============================================================ */
 .report {
   background: #fff;
-  max-width: var(--page-width);
+  width: 210mm;                 /* echte A4-Breite -> Vorschau = PDF */
+  max-width: 100%;
   margin: 0 auto 60px;
-  padding: 24px 28px 40px;
+  padding: 16mm 18mm 18mm;      /* entspricht den PDF-Seitenrändern */
   color: #000;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 11pt;
-  border: 1px solid #ddd;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.14);  /* Seitenoptik ohne harten Rahmen */
+}
+
+/* Während der PDF-Erzeugung: Inhaltsbreite = A4 − 2×18 mm, keine eigenen
+   Ränder/Schatten (Seitenränder kommen aus html2pdf). !important, weil html2pdf
+   den Klon nach der .report-Regel rendert. */
+.report.pdf-mode {
+  width: 174mm !important;
+  max-width: 174mm !important;
+  padding: 0 !important;
+  box-shadow: none !important;
 }
 
 .placeholder { color: var(--muted); text-align: center; padding: 40px 0; }
@@ -274,7 +285,6 @@ body {
 
 /* Fachkommentar als kursive Zeile unter der untersten Kompetenz */
 .fach-kommentar-row td {
-  font-style: italic;
   color: #333;
   background: #fafafa;
   font-size: 10pt;

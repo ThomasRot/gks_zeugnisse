@@ -356,33 +356,33 @@ function generatePDF() {
   const safeName = String(currentData.name || "Zeugnis").replace(/[^\wäöüÄÖÜß-]+/g, "_");
   const name = String(currentData.name || "");
   const schuljahr = String(currentData.schuljahr || "");
-  const ML = 18, MR = 18;
+  const ML = 18, MR = 18, MT = 20, MB = 18;
+  // Inhaltsbreite (A4 210mm − Ränder) in px; html2canvas muss exakt damit
+  // rendern, sonst skaliert html2pdf und die Schrift weicht von der Vorschau ab.
+  const contentPx = Math.round((210 - ML - MR) * 96 / 25.4);
   const opt = {
-    // [oben, links, unten, rechts] in mm – oben mehr Platz für die Kopfzeile
-    margin: [24, ML, 20, MR],
+    // [oben, links, unten, rechts] in mm – Seitenränder NUR hier (nicht zusätzlich
+    // über das Element-Padding), damit Vorschau und PDF gleich aussehen.
+    margin: [MT, ML, MB, MR],
     filename: `Zeugnis_${safeName}.pdf`,
     image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", width: contentPx, windowWidth: contentPx },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
     pagebreak: { mode: ["css", "legacy"], avoid: [".komp-group", "tr", ".kenntnis", ".fach-title"] }
   };
   setMessage("PDF wird erstellt …", "ok");
 
-  // Vorschau-Kopfzeile ausblenden (im PDF zeichnen wir sie pro Seite selbst)
-  // und Report auf feste Druckbreite setzen (unabhängig von der Bildschirmbreite).
-  const PRINT_WIDTH = 820;
+  // Für den Export: Vorschau-Kopfzeile ausblenden (Kopfzeile zeichnet jsPDF pro
+  // Seite) und per Klasse die Export-Maße erzwingen (Breite 174 mm, kein
+  // Padding/Schatten). So entstehen Ränder NUR aus opt.margin -> Vorschau = PDF.
   const hidden = element.querySelectorAll(".no-pdf");
-  const prevWidth = element.style.width;
-  const prevMaxWidth = element.style.maxWidth;
   const restore = () => {
     hidden.forEach((e) => (e.style.display = ""));
-    element.style.width = prevWidth;
-    element.style.maxWidth = prevMaxWidth;
+    element.classList.remove("pdf-mode");
     renderRotatedLabels();
   };
   hidden.forEach((e) => (e.style.display = "none"));
-  element.style.width = PRINT_WIDTH + "px";
-  element.style.maxWidth = PRINT_WIDTH + "px";
+  element.classList.add("pdf-mode");
   renderRotatedLabels();
 
   html2pdf().set(opt).from(element).toPdf().get("pdf").then((pdf) => {

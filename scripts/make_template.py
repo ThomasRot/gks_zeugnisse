@@ -231,9 +231,7 @@ for row in [
     ["*", "siehe Kommentar", "*"],
     [],
     ["Hinweise", "", ""],
-    ["", "Leere Zellen bei Fach/Kompetenz = wie in der Zeile darüber.", ""],
-    ["", "Bewertung leer lassen, wenn (noch) nicht beurteilt.", ""],
-    ["", "Datei in Numbers über Ablage → Exportieren → Excel wieder als .xlsx speichern.", ""],
+    ["", "Leere Zellen bei Fach -> Kompetenz = wie in der Zeile darüber.", ""],
 ]:
     hs.append(row)
 hs.column_dimensions["A"].width = 12
