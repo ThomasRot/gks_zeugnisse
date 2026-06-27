@@ -437,7 +437,6 @@ function setMessage(text, type) {
 
 function enableOutput(on) {
   document.getElementById("btn-pdf").disabled = !on;
-  document.getElementById("btn-print").disabled = !on;
 }
 
 /* ============================================================
@@ -448,7 +447,6 @@ document.addEventListener("DOMContentLoaded", () => {
   loadLogo();
   document.getElementById("btn-template").addEventListener("click", downloadTemplate);
   document.getElementById("btn-pdf").addEventListener("click", generatePDF);
-  document.getElementById("btn-print").addEventListener("click", () => window.print());
 
   const input = document.getElementById("file-input");
   input.addEventListener("change", () => {

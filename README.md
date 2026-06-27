@@ -6,7 +6,7 @@ Grundschulzeugnisse als PDF erzeugt:
 1. **Excel-Vorlage herunterladen** – eine `.xlsx`-Datei (öffnet in Numbers/Excel).
 2. **Ausfüllen** mit den Zeugnisdaten.
 3. **Hochladen** – das Zeugnis wird als Vorschau dargestellt.
-4. **PDF herunterladen** oder direkt **drucken**.
+4. **PDF herunterladen**.
 
 Alle Daten bleiben im Browser – es wird nichts hochgeladen oder gespeichert.
 
@@ -110,6 +110,6 @@ Regeln:
 > Datei gleichen Namens ersetzen (oder den Dateinamen in `app.js` anpassen).
 
 Die PDF-Erzeugung nutzt [html2pdf.js](https://github.com/eKoopmans/html2pdf.js),
-das Lesen/Schreiben der Excel-Dateien [SheetJS](https://sheetjs.com/) – beide
-via CDN. Alternativ erzeugt der **Drucken**-Knopf über den Browser-Dialog
-„Als PDF speichern" eine besonders saubere, vektorbasierte PDF.
+das Lesen der Excel-Dateien [SheetJS](https://sheetjs.com/) – beide via CDN. Das
+PDF enthält auf jeder Seite eine laufende Kopfzeile mit Seitenzahl, Name,
+Schuljahr und Logo.
