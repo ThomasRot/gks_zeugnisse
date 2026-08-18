@@ -1,6 +1,6 @@
 # Grundschulzeugnis-Generator
 
-Eine reine **Frontend-Website** (kein Server, kein Build-Schritt), mit der man
+Eine reine **Frontend-Website**, mit der man
 Grundschulzeugnisse als PDF erzeugt:
 
 1. **Excel-Vorlage herunterladen** – eine `.xlsx`-Datei (öffnet in Numbers/Excel).
@@ -19,8 +19,7 @@ und die Kommentare ein – kein Format-Wissen nötig.
 
 ## Lokal ausprobieren
 
-Einfach `index.html` im Browser öffnen. (Wegen des `file://`-Protokolls
-funktioniert das direkt; für saubere lokale Tests ggf. einen kleinen Server starten:)
+Einfach `index.html` im Browser öffnen. Bzw.:
 
 ```bash
 python3 -m http.server 8000

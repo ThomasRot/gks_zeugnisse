@@ -124,6 +124,7 @@ body {
 }
 .message.error { color: #b00020; }
 .message.ok { color: #0a7d28; }
+.message.warn { color: #9a6700; }
 
 .legend-help {
   margin: 18px 0;

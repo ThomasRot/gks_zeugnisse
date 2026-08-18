@@ -4,10 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Zeugnis-Generator · Georg-Kerschensteiner-Schule</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="apple-touch-icon" href="favicon.png" />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
   <div class="app-controls no-print">
@@ -20,7 +23,7 @@
         <img class="brand-logo" src="GKS-Logo.png" alt="Georg-Kerschensteiner-Schule" />
       </div>
       <p class="subtitle">
-        Laden Sie die Vorlage herunter, füllen Sie sie aus, laden Sie sie wieder hoch &amp; erzeugen Sie ein PDF.
+        Laden Sie eine oder mehrere ausgefüllte Excel-Dateien hoch &amp; erzeugen Sie die Zeugnis-PDFs.
         Alles passiert lokal in Ihrem Browser – es werden keine Daten hochgeladen.
       </p>
     </header>
@@ -29,28 +32,19 @@
       <div class="step">
         <span class="step-num">1</span>
         <div>
-          <strong>Vorlage herunterladen</strong>
-          <p>Eine Excel-Datei (.xlsx) mit einer Zeile je Fähigkeit. Kann auch mit OpenOffice oder LibreOffice geöffnet werden.</p>
-          <button id="btn-template" class="btn btn-secondary">📥 Excel-Vorlage herunterladen</button>
+          <strong>Ausgefüllte Dateien hochladen</strong>
+          <p>Wählen Sie eine oder mehrere ausgefüllte Excel-Dateien aus (.xlsx). Die Vorlage erhalten Sie von der Schulleitung.</p>
+          <label class="btn btn-secondary" for="file-input">📂 Excel-Dateien auswählen</label>
+          <input type="file" id="file-input" multiple accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden />
+          <span id="file-name" class="file-name"></span>
         </div>
       </div>
 
       <div class="step">
         <span class="step-num">2</span>
         <div>
-          <strong>Ausgefüllte Datei hochladen</strong>
-          <p>Wählen Sie Ihre ausgefüllte Excel-Datei aus (.xlsx).</p>
-          <label class="btn btn-secondary" for="file-input">📂 Excel-Datei auswählen</label>
-          <input type="file" id="file-input" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden />
-          <span id="file-name" class="file-name"></span>
-        </div>
-      </div>
-
-      <div class="step">
-        <span class="step-num">3</span>
-        <div>
-          <strong>PDF erzeugen</strong>
-          <p>Laden Sie das PDF herunter.</p>
+          <strong>PDFs erzeugen</strong>
+          <p>Ein Zeugnis wird direkt als PDF heruntergeladen, mehrere gebündelt als ZIP-Datei.</p>
           <button id="btn-pdf" class="btn btn-primary" disabled>⬇️ PDF herunterladen</button>
         </div>
       </div>
@@ -59,6 +53,7 @@
     <div id="message" class="message" role="status"></div>
   </div>
 
+  <script src="logo-data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
